@@ -35,12 +35,12 @@ Dim sTest   As String
     
     If mCommon.IsCvObject(vCv) Then
         On Error Resume Next
-        sTest = vCv.Name
+        sTest = vCv.name
         Exists = Err.Number = 0
         GoTo exit_proc
     ElseIf mCommon.IsCvName(vCv) Then
         On Error Resume Next
-        sTest = wb.CustomViews(vCv).Name
+        sTest = wb.CustomViews(vCv).name
         Exists = Err.Number = 0
         GoTo exit_proc
     End If

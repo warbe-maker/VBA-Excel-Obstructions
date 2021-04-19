@@ -91,13 +91,13 @@ Option Explicit
 ' ~~ Begin of Declarations for withdrawing the title bar ------------------------------------
 Private Declare PtrSafe Function GetForegroundWindow Lib "User32.dll" () As LongPtr
 Private Declare PtrSafe Function GetWindowLong Lib "User32.dll" _
-                          Alias "GetWindowLongPtrA" (ByVal hwnd As LongPtr, _
+                          Alias "GetWindowLongPtrA" (ByVal hWnd As LongPtr, _
                                                      ByVal nIndex As Long) As LongPtr
 Private Declare PtrSafe Function SetWindowLong Lib "User32.dll" _
-                          Alias "SetWindowLongPtrA" (ByVal hwnd As LongPtr, _
+                          Alias "SetWindowLongPtrA" (ByVal hWnd As LongPtr, _
                                                      ByVal nIndex As Long, _
                                                      ByVal dwNewLong As LongPtr) As LongPtr
-Private Declare PtrSafe Function DrawMenuBar Lib "User32.dll" (ByVal hwnd As LongPtr) As Long
+Private Declare PtrSafe Function DrawMenuBar Lib "User32.dll" (ByVal hWnd As LongPtr) As Long
 Private Const GWL_STYLE  As Long = (-16)
 Private Const WS_CAPTION As Long = &HC00000
 ' ~~ End of Declarations for withdrawing the title bar --------------------------------------

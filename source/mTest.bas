@@ -408,7 +408,7 @@ End Sub
 
 Public Sub Names()
 Const PROC = "Names"
-Dim nm      As Name
+Dim nm      As name
 Dim row     As Long
 Dim wb      As Workbook
 Dim ws      As Worksheet
@@ -424,10 +424,10 @@ Dim ws      As Worksheet
             row = row + 1
             Intersect(.rNames, .NamesSheet.EntireColumn, .Rows(row)).Value = Split(nm.RefersTo, "!")(0)
             Intersect(.rNames, .NamesReference.EntireColumn, .Rows(row)).Value = Split(nm.RefersTo, "!")(1)
-            If InStr(nm.Name, "!") <> 0 Then
-                Intersect(.rNames, .NamesName.EntireColumn, .Rows(row)).Value = Split(nm.Name, "!")(1)
+            If InStr(nm.name, "!") <> 0 Then
+                Intersect(.rNames, .NamesName.EntireColumn, .Rows(row)).Value = Split(nm.name, "!")(1)
             Else
-                Intersect(.rNames, .NamesName.EntireColumn, .Rows(row)).Value = nm.Name
+                Intersect(.rNames, .NamesName.EntireColumn, .Rows(row)).Value = nm.name
             End If
             Intersect(.rNames, .NamesScope.EntireColumn, .Rows(row)).Value = "Workbook"
         Next nm

@@ -37,9 +37,9 @@ Private Declare PtrSafe Function GetSystemMetrics32 _
     (ByVal nIndex As Long) As Long
 
 'Functions to get DPI
-Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hwnd As Long) As Long
+Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
-Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hwnd As Long, ByVal hDC As Long) As Long
+Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
 Private Const LOGPIXELSX = 88               ' Pixels/inch in X
 Private Const POINTS_PER_INCH As Long = 72  ' A point is defined as 1/72 inches
 Private Declare PtrSafe Function GetForegroundWindow _
@@ -47,13 +47,13 @@ Private Declare PtrSafe Function GetForegroundWindow _
 
 Private Declare PtrSafe Function GetWindowLongPtr _
   Lib "User32.dll" Alias "GetWindowLongA" _
-    (ByVal hwnd As LongPtr, _
+    (ByVal hWnd As LongPtr, _
      ByVal nIndex As Long) _
   As LongPtr
 
 Private Declare PtrSafe Function SetWindowLongPtr _
   Lib "User32.dll" Alias "SetWindowLongA" _
-    (ByVal hwnd As LongPtr, _
+    (ByVal hWnd As LongPtr, _
      ByVal nIndex As LongPtr, _
      ByVal dwNewLong As LongPtr) _
   As LongPtr
@@ -714,7 +714,7 @@ Dim siHeight        As Single
         
         .Replies = sReplies
         If siFormWidth <> 0 Then .Width = Max(.Width, siFormWidth)
-        .StartUpPosition = 1
+        .StartupPosition = 1
         .Width = w * PointsPerPixel * 0.85 'Userform width= Width in Resolution * DPI * 85%
         siHeight = h * PointsPerPixel * 0.2
         .Height = Min(.Height, siHeight)
@@ -736,13 +736,13 @@ Public Sub MakeFormResizable()
 Const WS_THICKFRAME = &H40000
 Const GWL_STYLE As Long = (-16)
 Dim lStyle As LongPtr
-Dim hwnd As LongPtr
+Dim hWnd As LongPtr
 Dim RetVal
 
-    hwnd = GetForegroundWindow
+    hWnd = GetForegroundWindow
     
-    lStyle = GetWindowLongPtr(hwnd, GWL_STYLE Or WS_THICKFRAME)
-    RetVal = SetWindowLongPtr(hwnd, GWL_STYLE, lStyle)
+    lStyle = GetWindowLongPtr(hWnd, GWL_STYLE Or WS_THICKFRAME)
+    RetVal = SetWindowLongPtr(hWnd, GWL_STYLE, lStyle)
 End Sub
 
 Public Function AppErr(ByVal lNo As Long) As Long
