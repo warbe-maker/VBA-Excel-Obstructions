@@ -1,6 +1,35 @@
 Attribute VB_Name = "mCstmVw"
 Option Explicit
 
+Private Sub ErrMsg( _
+             ByVal err_source As String, _
+    Optional ByVal err_no As Long = 0, _
+    Optional ByVal err_dscrptn As String = vbNullString)
+' ------------------------------------------------------
+' This Common Component does make use of a Common Error
+' Handling module (in order to limit the number of used
+' components. Instead it passes on any error to this
+' procedure.
+' ------------------------------------------------------
+    
+    If err_no = 0 Then err_no = Err.Number
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+
+    Application.EnableEvents = True
+    Err.Raise Number:=err_no, Source:=err_source, Description:=err_dscrptn
+
+End Sub
+
+Public Function IsCvObject(ByVal v As Variant) As Boolean
+
+    If VarType(v) = vbObject Then
+        If Not TypeName(v) = "Nothing" Then
+            IsCvObject = TypeOf v Is CustomView
+        End If
+    End If
+    
+End Function
+
 Public Function Exists(ByVal vWb As Variant, _
                        ByVal vCv As Variant, _
               Optional ByRef cvResult As CustomView) As Boolean
@@ -30,17 +59,17 @@ Dim sTest   As String
         Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided Workbook (vWb) '" & vWb & "' is not open!"
     End If
     
-    If Not mCommon.IsCvObject(vCv) And Not mCommon.IsCvName(vCv) _
+    If Not IsCvObject(vCv) And Not IsCvName(vCv) _
     Then Err.Raise AppErr(3), ErrSrc(PROC), "The CustomView (vCv) is neither a string (CustomView's name) nor a CustomView object!"
     
-    If mCommon.IsCvObject(vCv) Then
+    If IsCvObject(vCv) Then
         On Error Resume Next
-        sTest = vCv.name
+        sTest = vCv.Name
         Exists = Err.Number = 0
         GoTo exit_proc
-    ElseIf mCommon.IsCvName(vCv) Then
+    ElseIf IsCvName(vCv) Then
         On Error Resume Next
-        sTest = wb.CustomViews(vCv).name
+        sTest = wb.CustomViews(vCv).Name
         Exists = Err.Number = 0
         GoTo exit_proc
     End If
@@ -53,7 +82,11 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    mErrHndlr.ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    ErrMsg ErrSrc(PROC)
+End Function
+
+Public Function IsCvName(ByVal v As Variant) As Boolean
+    If VarType(v) = vbString Then IsCvName = True
 End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String

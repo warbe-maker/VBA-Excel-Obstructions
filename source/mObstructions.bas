@@ -1,35 +1,31 @@
 Attribute VB_Name = "mObstructions"
 Option Explicit
 ' --------------------------------------------------------------------
-' Module mObstructions     Manages obstructions which hinder vba
-'                          operations by saving them and set them off
-'                          and restoring them after the hindered
-'                          operation had finished. Typical operations
-'                          prevented by obstructions are:
-'                          - Rows move/copy (e.g. by filtered rows)
-'                          - Range value modifications
-'                          operations like move, copy, delete for
-'                          instance. Each of the procedures dealing
-'                          with one specific obstruction may also be
-'                          used independently.
-' Procedures: Obstructions summarizes all below and turns them off and
-'                          retores them
-'                AppEvents Sets it to False and restores the initially
-'                          saved status
-'             FilteredRows Turns Autofilter off when active and restores
-'                          it by means of a CustomView.
-'               FormEvents Saves the actual events status and turns it
-'                          off and restores it to the saved status
-'            HiddenColumns Displays them and restores them by means of a
-'                          CustomView
-'              MergedCells Un-merges and re-merges cells associated with
-'                          the current Selection.
-'          SheetProtection Un-protects any number of sheets used in a
-'                          project and re-protects them (only) when they
-'                          were initially protected.
-'               RangeNames Saves and restores all formulas in Workbook
-'                          which use a RangeName of a certain Worksheet
-'                          by commenting and uncommenting the formulas
+' Standard Module mObstructions
+'           Manages obstructions which hinder vba operations by
+'           providing procedured to save and set them off and
+'           restoring them. Typical operations prevented are:
+'           - Rows move/copy (e.g. by filtered rows)
+'           - Range value modifications
+' Procedures:
+' - Obstructions    summarizes all below and turns them off and
+'                   retores them
+' - AppEvents       Sets it to False and restores the initially
+'                   saved status
+' - FilteredRows    Turns Autofilter off when active and restores
+'                   it by means of a CustomView.
+' - FormEvents      Saves the actual events status and turns it
+'                   off and restores it to the saved status
+' - HiddenColumns   Displays them and restores them by means of a
+'                   CustomView
+' - MergedCells     Un-merges and re-merges cells associated with
+'                   the current Selection.
+' - SheetProtection Un-protects any number of sheets used in a
+'                   project and re-protects them (only) when they
+'                   were initially protected.
+' - RangeNames      Saves and restores all formulas in Workbook
+'                   which use a RangeName of a certain Worksheet
+'                   by commenting and uncommenting the formulas
 ' Note 1: A CustomView is the means to restore Autofilter and/or hidden
 '         columns of a certain Worksheet. CustomViews to save/restore
 '         Autofilter a independant from those for saving/restoring
@@ -46,6 +42,10 @@ Option Explicit
 '         not conflict with the "global" Off/CleanUp since there is
 '         no longer an obstruction to turn off and subsequently none to
 '         be restored.
+' Uses the common components:
+' - mCstmVw, m-Wrkbk; the common components mErH, fMsg, mMsg are only
+'                     used by the mTest module and thus are not required
+'                     when using mObstructions
 ' ----------------------------------------------------------------------
 Public Const TEMPCVNAME    As String = "TempObstructionsCustomView_"
 Public Enum xlSaveRestore
@@ -168,7 +168,7 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub AppEvents(ByVal SaveRestore As xlSaveRestore)
@@ -211,7 +211,7 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub FilteredRows(ByVal SaveRestore As xlSaveRestore, _
@@ -253,25 +253,19 @@ Const PROC = "FilteredRows"
         Case xlSaveAndOff
             If ws.AutoFilterMode = True Then
                 '~~ Create a CustomView, keep a record of the CustomView and turn filtering off
-                BoT "SaveAndOff FilteredRows (Worksheet '" & ws.Name & "')"
                 WsCustomView xlSaveOnly, ws, bRowsFiltered:=True
                 SheetProtection xlSaveAndOff, ws    ' Possibly nested request ensuring unprotection
                 ws.AutoFilterMode = False
                 SheetProtection xlRestore, ws       ' Possibly nested restore ensuring protection status restore
-                EoT "SaveAndOff FilteredRows (Worksheet '" & ws.Name & "')"
             Else
-                BoT "SaveAndOff FilteredRows already turned off (Worksheet '" & ws.Name & "')"
                 WsCustomView xlSaveOnly, ws ' Just add subsequent save request to stack
-                EoT "SaveAndOff FilteredRows already turned off (Worksheet '" & ws.Name & "')"
             End If
         
         Case xlRestore
             '~~ CleanUp the CustomView saved for Worksheet (ws) if any
-            BoT "Restore FilteredRows (Worksheet '" & ws.Name & "')"
             If dcCvsWb.Exists(wb) Then ' Only if at least for one Worksheet a CustomView had been saved
                 WsCustomView xlRestore, ws
             End If
-            EoT "Restore FilteredRows (Worksheet '" & ws.Name & "')"
     End Select
 
 exit_proc:
@@ -282,7 +276,7 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub HiddenColumns(ByVal SaveRestore As xlSaveRestore, _
@@ -307,19 +301,15 @@ Dim col         As Range
             If WsColsHidden(ws) Then
                 '~~ If not one already exists create a CustomView for this Worksheet and keep a record of it
                 '~~ and un-hide all hidden columns
-                BoT "SaveAndOff Hidden Columns (Worksheet '" & ws.Name & "')"
                 SheetProtection xlSaveAndOff, ws
                 WsCustomView xlSaveOnly, ws, bColsHidden:=True
                 For Each col In ws.UsedRange.Columns
                     If col.Hidden Then col.Hidden = False
                 Next col
                 SheetProtection xlRestore, ws
-                EoT "SaveAndOff Hidden Columns (Worksheet '" & ws.Name & "')"
             Else
                 '~~ Add a subsequent save request to the Worksheet's save stack
-                BoT "SaveAndOff Hidden Columns already un-hided (Worksheet '" & ws.Name & "')"
                 WsCustomView xlSaveOnly, ws, bColsHidden:=True
-                EoT "SaveAndOff Hidden Columns already un-hided (Worksheet '" & ws.Name & "')"
             End If
         
         Case xlRestore
@@ -334,7 +324,7 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub MergedCells(ByVal SaveRestore As xlSaveRestore, _
@@ -443,7 +433,7 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub SheetProtection(ByVal SaveRestore As xlSaveRestore, _
@@ -475,7 +465,6 @@ Dim cll         As Collection
         Select Case SaveRestore
             Case xlSaveAndOff
                 If ws.ProtectContents Then
-                    BoT "Save-and-off protection '" & ws.Name & "'"
                     If Not dcProt.Exists(ws) Then
                         Set cll = New Collection
                         cll.Add ws.ProtectContents
@@ -486,15 +475,12 @@ Dim cll         As Collection
                         dcProt.Remove ws
                         dcProt.Add ws, cll
                     End If
-                    EoT "Save-and-off protection '" & ws.Name & "'"
                 Else
                     If dcProt.Exists(ws) Then
-                        BoT "Subsequent Save-and-off protection '" & ws.Name & "'"
                         Set cll = dcProt.Item(ws)
                         cll.Add ws.ProtectContents ' may be true or false
                         dcProt.Remove ws
                         dcProt.Add ws, cll
-                        EoT "Subsequent Save-and-off protection '" & ws.Name & "'"
                     Else ' The sheet were never protected
                     End If
                 End If
@@ -505,14 +491,12 @@ Dim cll         As Collection
                     Set cll = dcProt.Item(ws)
                     With cll
                         If .Count > 0 Then
-                            BoT "Restore protection status '" & ws.Name & "'"
                             If .Item(cll.Count) Then
                                 ws.Protect
                             Else
                                 ws.Unprotect
                             End If
                             .Remove .Count ' take off last saved item from stack
-                            EoT "Restore protection status '" & ws.Name & "'"
                         End If
                         If cll.Count = 0 Then dcProt.Remove ws
                     End With
@@ -528,7 +512,7 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub RangeNames(ByVal SaveRestore As xlSaveRestore, _
@@ -625,7 +609,7 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    ErrMsg ErrSrc(PROC)
 End Sub
 
 Private Sub Merge(ByVal r As Range, ByVal OffOn As xlSaveRestore)
@@ -692,7 +676,7 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub Borders(ByVal r As Range, _
@@ -767,7 +751,7 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub WsCustomView(ByVal SaveRestore As xlSaveRestore, _
@@ -795,14 +779,12 @@ Dim v           As Variant
             If Not dcCvsWb.Exists(wb) Then
                 '~~ This is the first Save request for a CustomView for a Worksheet (ws) in the Workbook (wb)
                 If bRowsFiltered Or bColsHidden Then
-                    BoT "Create/Save CustomView (Worksheet '" & ws.Name & "')"
                     Set dcCvsWs = New Dictionary
                     Set cllCv = New Collection
                     Set cv = wb.CustomViews.Add(ViewName:=ws.Name & TEMPCVNAME, RowColSettings:=True)
                     cllCv.Add cv  ' keep record of the CustomView saved for the Worksheet (ws)
                     dcCvsWs.Add ws, cllCv ' Add a
                     dcCvsWb.Add wb, dcCvsWs
-                    EoT "Create/Save CustomView (Worksheet '" & ws.Name & "')"
                 End If
             Else ' dcCvsWb.Exists(wb)
                 '~~ Apparently at least for one Worksheet in the Workbook a CustomView had already been saved
@@ -810,24 +792,20 @@ Dim v           As Variant
                 If Not dcCvsWs.Exists(ws) Then
                     If bRowsFiltered Or bColsHidden Then
                         '~~ The first entry for a Worksheet's Obstruction save request
-                        BoT "Create/Save a CustomView (Worksheet '" & ws.Name & "')"
                         '~~ This is the first save of a CustomView for the Workseet (ws)
                         Set cllCv = New Collection
                         Set cv = wb.CustomViews.Add(ViewName:=ws.Name & TEMPCVNAME, RowColSettings:=True)
                         cllCv.Add cv  ' Save the CustomView created for the Worksheet (ws)
                         dcCvsWs.Add ws, cllCv
-                        EoT "Create/Save a CustomView (Worksheet '" & ws.Name & "')"
                     End If
                 Else ' dcCvsWs.Exists(ws)
                     '~~ Apparently a CustomView had already been saved for the Worksheet (ws)
                     '~~ (the first entry for a Worksheet is always the one along with the creation of the CustomView)
                     '~~ thus this subsequent Save request is just added to the CustomView save-stack
-                    BoT "Add subsequent Save request to stack (Worksheet '" & ws.Name & "')"
                     Set cllCv = dcCvsWs.Item(ws)
                     cllCv.Add vbNullString
                     dcCvsWs.Remove ws
                     dcCvsWs.Add ws, cllCv
-                    EoT "Add subsequent Save request to stack (Worksheet '" & ws.Name & "')"
                 End If
                 dcCvsWb.Remove wb
                 dcCvsWb.Add wb, dcCvsWs
@@ -844,13 +822,10 @@ Dim v           As Variant
                     With cllCv
                         If TypeName(.Item(.Count)) = "String" Then
                             '~~ "Unstack" the indication of a subsequent Save request
-                            BoT "Unstack subsequent Save request (Worksheet '" & ws.Name & "')"
                             .Remove .Count
-                            EoT "Unstack subsequent Save request (Worksheet '" & ws.Name & "')"
                         Else
                             Set cv = .Item(.Count)
                             If mCstmVw.Exists(wb, cv) Then
-                                BoT "Restore CustomView (Worksheet '" & ws.Name & "')"
                                 '~~ Temporarily protect all not concerned Worksheets
                                 '~~ save their sequence within the Workbook and move
                                 '~~ the concerned Worksheet to the front
@@ -869,7 +844,7 @@ Dim v           As Variant
                                 '~~ Activating the CustomView for any other Worksheet will fail
                                 '~~ since they are all protected
                                 SheetProtection xlSaveAndOff, ws
-                                cv.Show
+                                cv.show
                                 SheetProtection xlRestore, ws
                                 cv.Delete
                                 dcCvsWs.Remove ws ' CustomView restore done for this Worksheet
@@ -877,7 +852,6 @@ Dim v           As Variant
                                 For Each v In cllProt: v.Unprotect: Next v  '~~ CleanUp the sheet's protection status
                                 WsSequence xlRestore, wb                    '~~ CleanUp the Worksheet's initial sequence
                                 
-                                EoT "Restore CustomView (Worksheet '" & ws.Name & "')"
                             End If
                         End If
                     End With
@@ -896,7 +870,7 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Function WsColsHidden(ByVal ws As Worksheet) As Boolean
@@ -1080,6 +1054,25 @@ again_confirmed:
     End If
 
 exit_proc:
+End Sub
+
+Private Sub ErrMsg( _
+             ByVal err_source As String, _
+    Optional ByVal err_no As Long = 0, _
+    Optional ByVal err_dscrptn As String = vbNullString)
+' ------------------------------------------------------
+' This Common Component does make use of a Common Error
+' Handling module (in order to limit the number of used
+' components. Instead it passes on any error to this
+' procedure.
+' ------------------------------------------------------
+    
+    If err_no = 0 Then err_no = Err.Number
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+
+    Application.EnableEvents = True
+    Err.Raise Number:=err_no, Source:=err_source, Description:=err_dscrptn
+
 End Sub
 
 Private Function ErrSrc(ByVal sProc As String) As String

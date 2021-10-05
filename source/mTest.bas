@@ -45,7 +45,7 @@ exit_proc:
 Exit Sub
     
 on_error:
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub Test_Obstructions1()
@@ -65,7 +65,7 @@ exit_proc:
     Exit Sub
     
 on_error:
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub Test_RangeNames()
@@ -98,7 +98,7 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 
@@ -129,7 +129,7 @@ exit_proc:
     Exit Sub
     
 on_error:
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub Test_WsCustomView()
@@ -168,7 +168,7 @@ exit_proc:
     Exit Sub
     
 on_error:
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub Test_AppEvents()
@@ -202,7 +202,7 @@ exit_proc:
     Exit Sub
     
 on_error:
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    mErH.ErrMsg ErrSrc(PROC)
 
 End Sub
 
@@ -259,7 +259,7 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub Test_RowsFiltering()
@@ -350,7 +350,7 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub Test_ColHiding()
@@ -383,7 +383,7 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub Test_CellsMerging()
@@ -403,12 +403,12 @@ on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Public Sub Names()
 Const PROC = "Names"
-Dim nm      As name
+Dim nm      As Name
 Dim row     As Long
 Dim wb      As Workbook
 Dim ws      As Worksheet
@@ -424,10 +424,10 @@ Dim ws      As Worksheet
             row = row + 1
             Intersect(.rNames, .NamesSheet.EntireColumn, .Rows(row)).Value = Split(nm.RefersTo, "!")(0)
             Intersect(.rNames, .NamesReference.EntireColumn, .Rows(row)).Value = Split(nm.RefersTo, "!")(1)
-            If InStr(nm.name, "!") <> 0 Then
-                Intersect(.rNames, .NamesName.EntireColumn, .Rows(row)).Value = Split(nm.name, "!")(1)
+            If InStr(nm.Name, "!") <> 0 Then
+                Intersect(.rNames, .NamesName.EntireColumn, .Rows(row)).Value = Split(nm.Name, "!")(1)
             Else
-                Intersect(.rNames, .NamesName.EntireColumn, .Rows(row)).Value = nm.name
+                Intersect(.rNames, .NamesName.EntireColumn, .Rows(row)).Value = nm.Name
             End If
             Intersect(.rNames, .NamesScope.EntireColumn, .Rows(row)).Value = "Workbook"
         Next nm
@@ -453,7 +453,7 @@ exit_proc:
     Exit Sub
     
 on_error:
-    ErrHndlr Err.Number, ErrSrc(PROC), Err.Description, Erl
+    mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
 Private Sub TestSetUp()
