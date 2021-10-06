@@ -1,6 +1,6 @@
 Attribute VB_Name = "mObstructions"
 Option Explicit
-' --------------------------------------------------------------------
+' ------------------------------------------------------------------------------
 ' Standard Module mObstructions
 '           Manages obstructions which hinder vba operations by
 '           providing procedured to save and set them off and
@@ -18,7 +18,7 @@ Option Explicit
 '                   off and restores it to the saved status
 ' - HiddenColumns   Displays them and restores them by means of a
 '                   CustomView
-' - MergedCells     Un-merges and re-merges cells associated with
+' - MergedCells     xlSaveAndOff Un-merges, xlRestore re-merges cells associated with
 '                   the current Selection.
 ' - SheetProtection Un-protects any number of sheets used in a
 '                   project and re-protects them (only) when they
@@ -46,7 +46,7 @@ Option Explicit
 ' - mCstmVw, m-Wrkbk; the common components mErH, fMsg, mMsg are only
 '                     used by the mTest module and thus are not required
 '                     when using mObstructions
-' ----------------------------------------------------------------------
+' ------------------------------------------------------------------------------
 Public Const TEMPCVNAME    As String = "TempObstructionsCustomView_"
 Public Enum xlSaveRestore
     xlSaveOnly
@@ -64,127 +64,17 @@ Private wb              As Workbook
 Private bObstructionHiddenCols      As Boolean
 Private bObstructionFilteredRows    As Boolean
 
-Public Sub Obstructions(ByVal SaveRestore As xlSaveRestore, _
-                        ByVal ws As Worksheet, _
-               Optional ByVal bSheetProtection As Boolean = False, _
-               Optional ByVal bRowsFiltering As Boolean = False, _
-               Optional ByVal bHiddenCols As Boolean = False, _
-               Optional ByVal bCellsMerging As Boolean = False, _
-               Optional ByVal bRangeNames As Boolean = False, _
-               Optional ByVal bAppEvents As Boolean = False, _
-               Optional ByVal bFormEvents As Boolean = False)
-' --------------------------------------------------------------------
-' Saves and restores all obstructions indicated True. It is absolutely
-' essential that any Obstructions Save is paired by an exactly corres-
-' ponding CleanUp. Nested Save/CleanUp pairs, usually performed in
-' nested sub-procedures (which allows independant testing) is fully
-' suported. The sequence in which paired Restores are perfomed is not
-' relevant as long as they are exactly paired.
-'
-' Requires: - Reference to "Microsoft Scripting Runtime"
-'           - Module mErrHndlr
-'           - Module mExists
-' --------------------------------------------------------------------
-Const PROC          As String = "Obstructions"
-    
-    On Error GoTo on_error
-    BoP ErrSrc(PROC)
-           
-    bObstructionHiddenCols = bHiddenCols
-    bObstructionFilteredRows = bRowsFiltering
-
-    Select Case SaveRestore
-        Case xlSaveAndOff
-            
-            '~~ 1. Save and turn off Application Events
-            If bAppEvents Then
-                AppEvents xlSaveAndOff
-            End If
-            
-            '~~ 2. Save and turn off sheet protection if requested or implicitely required
-            If bSheetProtection Or bRowsFiltering Or bHiddenCols Or bCellsMerging Then
-                SheetProtection xlSaveAndOff, ws
-            End If
-            
-            '~~ 3. Save and turn off Autofilter  if applicable
-            If bObstructionFilteredRows Then
-                FilteredRows xlSaveAndOff, ws
-            End If
-            
-            '~~ 4. Save and turn off hidden columns  if applicable
-            If bObstructionHiddenCols Then
-                HiddenColumns xlSaveAndOff, ws
-            End If
-            
-            '~~ 5. Save and turn off any effected merged cells if applicable
-            If bCellsMerging Then
-                MergedCells xlSaveAndOff
-            End If
-            
-            '~~ 6. Save and turn off used range names
-            If bRangeNames Then
-                RangeNames xlSaveAndOff, ws
-            End If
-            
-        Case xlRestore
-            
-            '~~ 1. CleanUp all formulas using a ws range name
-            If bRangeNames Then
-                RangeNames xlRestore, ws
-            End If
-            
-            '~~ 2. CleanUp merge areas which were initially effected by the Selection
-            If bCellsMerging Then
-                MergedCells xlRestore
-            End If
-            
-            '~~ 3. CleanUp Autofilter if applicable
-            If bRowsFiltering Then
-                FilteredRows xlRestore, ws
-            End If
-            
-            '~~ 4. CleanUp hidden columns
-            If bHiddenCols Then
-                HiddenColumns xlRestore, ws
-            End If
-            
-            '~~ 5. CleanUp the sheets protection status when it initially was protected
-            If bSheetProtection Or bRowsFiltering Or bHiddenCols Or bCellsMerging Then
-                SheetProtection xlRestore, ws
-            End If
-            
-            '~~ 6. CleanUp Application Events status
-            If bAppEvents Then
-                AppEvents xlRestore
-            End If
-            
-    End Select
-         
-exit_proc:
-    EoP ErrSrc(PROC)
-    Exit Sub
-    
-on_error:
-#If Debugging = 1 Then
-    Stop: Resume
-#End If
-    ErrMsg ErrSrc(PROC)
-End Sub
-
 Public Sub AppEvents(ByVal SaveRestore As xlSaveRestore)
-' ------------------------------------------------------
-' - SaveRestore = xlSaveAndOff: Saves the current
-'   Application.EnableEvents status and turns it off.
-'   Any subsequent execution will just save the status
-'   (adds it to the stack)
-' - SaveRestore = xlRestore: Restores the last saved
-'   Application.EnableEvents status and removes the
-'   saved item.
-' ------------------------------------------------------
-Const PROC = "AppEvents"
+' ------------------------------------------------------------------------------
+' - SaveRestore = xlSaveAndOff: Saves the current Application.EnableEvents
+'   status and turns it off. Any subsequent execution will just save the status
+'   (i.e. adds it to the stack)
+' - SaveRestore = xlRestore: Restores the last saved Application.EnableEvents
+'   status and removes the saved item.
+' ------------------------------------------------------------------------------
+    Const PROC = "AppEvents"
 
-    On Error GoTo on_error
-    BoP ErrSrc(PROC)
+    On Error GoTo eh
     
     Select Case SaveRestore
         Case xlSaveAndOff
@@ -193,7 +83,7 @@ Const PROC = "AppEvents"
             Application.EnableEvents = False
             
         Case xlRestore
-            If cllAppEvents Is Nothing Then GoTo exit_proc
+            If cllAppEvents Is Nothing Then GoTo xt
             With cllAppEvents
                 If .Count > 0 Then
                     '~~ restore last saved statis item and remove item (take it off from stack)
@@ -203,20 +93,255 @@ Const PROC = "AppEvents"
             End With
     End Select
 
-exit_proc:
-    EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
     
-on_error:
+eh:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
     ErrMsg ErrSrc(PROC)
 End Sub
 
+Public Sub Borders(ByVal r As Range, _
+                   ByVal SaveRestore As xlSaveRestore, _
+                   ByRef dct As Dictionary)
+' ------------------------------------------------------------------------------
+' - xlOffOn = xlSaveOnly: Saves the border properties of
+'   Range r into the Dictionary dct.
+' - xlOnOff = xlRestore: Restores all border properties
+'   for Range r from the Dictionary dct.
+' ------------------------------------------------------------------------------
+    Const PROC = "Borders"
+    On Error GoTo eh
+    
+    Dim cll             As Collection
+    Dim bo              As Border
+    Dim xlBi            As XlBordersIndex
+
+    i = 0
+    
+    Select Case SaveRestore
+        Case xlSaveOnly
+            Set dct = Nothing
+            Set dct = New Dictionary
+            For xlBi = xlDiagonalDown To xlInsideHorizontal ' = 5 to 12
+                With r.Borders(xlBi)
+                    Set cll = New Collection
+                    cll.Add .LineStyle
+                    cll.Add .Weight
+                    '~~ If there is a Color or a ColorIndex there is no ThemeColor
+                    cll.Add .Color
+                    cll.Add .ColorIndex
+                    
+                    If CStr(.Color) = vbNullString And CStr(.ColorIndex) = vbNullString Then
+                        cll.Add .ThemeColor
+                    Else
+                        cll.Add Null
+                    End If
+                    cll.Add .TintAndShade
+                End With
+                dct.Add xlBi, cll
+            Next xlBi
+            
+        Case xlRestore
+            For i = 0 To dct.Count - 1
+                xlBi = dct.Keys(i)
+                Set cll = dct.Items(i)
+                
+                With r.Borders(xlBi)
+                    .LineStyle = cll.Item(1)
+                    If Not .LineStyle = xlNone Then
+                        '~~ Any other border formationg only when there is a border
+                        .Weight = cll.Item(2)
+                        If Not IsNull(cll.Item(5)) Then
+                            .ThemeColor = cll.Item(5)
+                        Else
+                            '~~ Any color only when there is not ThemeColor
+                            .Color = cll.Item(3)
+                            .ColorIndex = cll.Item(4)
+                        End If
+                        If Not IsNull(cll.Item(6)) Then
+                            .TintAndShade = cll.Item(6)
+                        End If
+                    End If  ' LineStyle not is xlNone
+                End With
+                
+            Next i
+    End Select
+    
+    Exit Sub
+
+eh:
+#If Debugging = 1 Then
+    Stop: Resume
+#End If
+    ErrMsg ErrSrc(PROC)
+End Sub
+
+Public Sub CleanUp(Optional ByVal bForce As Boolean = False)
+' ------------------------------------------------------------------------------
+' Does cleanup for all obstructions still waiting for
+' a CleanUp, likely not done due to an error.
+' When bForce is True all remaining Restores are done
+' without notice. This may be used in the error handling of
+' the project after the error message had been displayed.
+' ------------------------------------------------------------------------------
+    Dim cv      As CustomView
+    Dim wb      As Workbook
+    Dim ws      As Worksheet
+    Dim v1      As Variant
+    Dim v2      As Variant
+    Dim v3      As Variant
+    Dim cll     As Collection
+    Dim sMsg    As String
+    Dim dcCvsWs As Dictionary
+
+    '~~ CleanUp CustomViews
+    If Not dcCvsWb Is Nothing Then
+        For Each v1 In dcCvsWb
+            Set dcCvsWs = dcCvsWb.Item(v1)
+            For Each v2 In dcCvsWs
+                Set ws = v2
+                Set cll = dcCvsWs.Item(v2)
+                If cll.Count > 0 Then
+                    '~~ Remaining restore action!
+                    If bForce Then
+                        While cll.Count > 0: WsCustomView xlRestore, ws: Wend
+                    Else
+                        If TypeName(cll.Item(1)) = "Object" Then
+                            Set cv = cll.Item(1)
+                            If CstmVwExists(wb, cv) Then
+                                If MsgBox(" CleanUp the yet unrestored CustomView for Worksheet '" & ws.Name & "' ?", vbYesNo, "Unrestored CustomView") = vbYes Then
+                                    While cll.Count > 0: WsCustomView xlRestore, ws: Wend
+                                End If
+                            End If
+                        End If
+                    End If
+                End If
+            Next v2
+        Next v1
+        dcCvsWb.RemoveAll
+    End If
+    
+    '~~ CleanUp Protection
+    If Not dcProt Is Nothing Then
+        If dcProt.Count > 0 Then
+            For Each v1 In dcProt
+                Set ws = v1
+                Set cll = dcProt.Item(v1)
+                With cll
+                    If .Count > 0 Then
+                        '~~ Remaining protection restore
+                        If bForce Then
+                            If .Item(1) Then ws.Protect Else ws.Unprotect
+                        Else
+                            If MsgBox("CleanUp the yet unrestored protection status for Worksheet '" & ws.Name & "' ?", vbYesNo, "Unrestored Protection Satus") = vbYes Then
+                                If .Item(1) Then ws.Protect Else ws.Unprotect
+                            End If
+                        End If
+                    End If
+                End With
+            Next v1
+        End If
+        dcProt.RemoveAll
+    End If
+    
+    '~~ CleanUp AppEvents (allway done silent)
+    If Not cllAppEvents Is Nothing Then
+        With cllAppEvents
+            If .Count > 0 Then Application.EnableEvents = .Item(1)
+        End With
+        Set cllAppEvents = Nothing
+    End If
+    
+    If Not dcMerged Is Nothing Then
+        '~~ Merge anything yet not re-merged
+    End If
+    
+    If sMsg <> vbNullString Then
+        MsgBox "Attention!" & vbLf & sMsg, vbCritical, "CleanUp of saved and set off bbstructions incomplete!"
+    End If
+
+End Sub
+
+Public Function CstmVwExists(ByVal vWb As Variant, _
+                             ByVal vCv As Variant, _
+                    Optional ByRef cvResult As CustomView) As Boolean
+' ------------------------------------------------------------------------------
+' Returns TRUE when the CustomView (vCv) - which may be a CustomView object or a
+' CustoView's name - exists in the Workbook (vwb). If vCv is provided as a
+' CustomView object only its name is used for the existence check.
+' ------------------------------------------------------------------------------
+    Const PROC  As String = "CustomViewExists"      ' This procedure's name for the error handling and execution tracking
+    On Error GoTo eh
+    
+    Dim wb      As Workbook
+    Dim sTest   As String
+
+    CstmVwExists = False
+    
+    If Not mWrkbk.IsObject(vWb) And Not mWrkbk.IsFullName(vWb) And Not mWrkbk.IsName(vWb) _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "The Workbook (parameter vWb) is neither a Workbook object nor a Workbook's name or fullname)!"
+    
+    If mWrkbk.IsObject(vWb) Then
+        Set wb = vWb
+    ElseIf mWrkbk.IsFullName(vWb) Then
+        Set wb = mWrkbk.GetOpen(vWb)
+    ElseIf mWrkbk.IsName(vWb) Then
+        If Not mWrkbk.IsOpen(vWb, wb) _
+        Then Err.Raise AppErr(2), ErrSrc(PROC), "The provided Workbook (vWb) '" & vWb & "' is not open!"
+    End If
+    
+    If Not IsCstmVwObject(vCv) And Not IsCstmVwName(vCv) _
+    Then Err.Raise AppErr(3), ErrSrc(PROC), "The CustomView (vCv) is neither a string (CustomView's name) nor a CustomView object!"
+    
+    If IsCstmVwObject(vCv) Then
+        On Error Resume Next
+        sTest = vCv.Name
+        CstmVwExists = Err.Number = 0
+        GoTo xt
+    ElseIf IsCstmVwName(vCv) Then
+        On Error Resume Next
+        sTest = wb.CustomViews(vCv).Name
+        CstmVwExists = Err.Number = 0
+        GoTo xt
+    End If
+  
+xt: Exit Function
+    
+eh:
+#If Debugging = 1 Then
+    Stop: Resume
+#End If
+    ErrMsg ErrSrc(PROC)
+End Function
+
+Private Sub ErrMsg( _
+             ByVal err_source As String, _
+    Optional ByVal err_no As Long = 0, _
+    Optional ByVal err_dscrptn As String = vbNullString)
+' ------------------------------------------------------------------------------
+' This Common Component does make use of a Common Error
+' Handling module (in order to limit the number of used
+' components. Instead it passes on any error to this
+' procedure.
+' ------------------------------------------------------------------------------
+    
+    If err_no = 0 Then err_no = Err.Number
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+
+    Application.EnableEvents = True
+    Err.Raise Number:=err_no, Source:=err_source, Description:=err_dscrptn
+
+End Sub
+
+Private Function ErrSrc(ByVal sProc As String) As String
+    ErrSrc = "mObstructions" & "." & sProc
+End Function
+
 Public Sub FilteredRows(ByVal SaveRestore As xlSaveRestore, _
                         ByVal ws As Worksheet)
-' -----------------------------------------------------------
+' ------------------------------------------------------------------------------
 ' - SaveRestore = xlSaveAndOff: When Autofilter is active a
 '   temporary CustomView is created and Autofilter is turned
 '   off.
@@ -237,11 +362,10 @@ Public Sub FilteredRows(ByVal SaveRestore As xlSaveRestore, _
 ' Requires: Reference to "Microsoft Scripting Runtime"
 '
 ' W. Rauschenberger Berlin Dec 2019
-' -------------------------------------------------------------
-Const PROC = "FilteredRows"
+' ------------------------------------------------------------------------------
+    Const PROC = "FilteredRows"
 
-    On Error GoTo on_error
-    BoP ErrSrc(PROC)
+    On Error GoTo eh
 
     '~~ The Workbook of the Worksheet may not be found within this Application instance.
     '~~ Application.Workbooks() may thus not be appropriate. GetOpenWorkbook will find
@@ -268,11 +392,9 @@ Const PROC = "FilteredRows"
             End If
     End Select
 
-exit_proc:
-    EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
 
-on_error:
+eh:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
@@ -281,17 +403,16 @@ End Sub
 
 Public Sub HiddenColumns(ByVal SaveRestore As xlSaveRestore, _
                          ByVal ws As Worksheet)
-' --------------------------------------------------------------
+' ------------------------------------------------------------------------------
 ' - SaveRestore = xlSaveAndOff: Create/Save CustomView and
 '   display all hidden columns
 ' - SaveRestore = xlRestore: CleanUp the saved CustomView.
 ' Note: May be called in nested subprocedures without a problem.
-' --------------------------------------------------------------
-Const PROC      As String = "HiddenColumns"
-Dim col         As Range
-
-    On Error GoTo on_error
-    BoP ErrSrc(PROC)
+' ------------------------------------------------------------------------------
+    Const PROC      As String = "HiddenColumns"
+    
+    On Error GoTo eh
+    Dim col         As Range
     
     Set wb = mWrkbk.GetOpen(ws.Parent.Name)
     
@@ -316,11 +437,90 @@ Dim col         As Range
             WsCustomView xlRestore, ws
     End Select
     
-exit_proc:
-    EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
     
-on_error:
+eh:
+#If Debugging = 1 Then
+    Stop: Resume
+#End If
+    ErrMsg ErrSrc(PROC)
+End Sub
+
+Public Function IsCstmVwName(ByVal v As Variant) As Boolean
+    IsCstmVwName = VarType(v) = vbString
+End Function
+
+Public Function IsCstmVwObject(ByVal v As Variant) As Boolean
+
+    If VarType(v) = vbObject Then
+        If Not TypeName(v) = "Nothing" Then
+            IsCstmVwObject = TypeOf v Is CustomView
+        End If
+    End If
+    
+End Function
+
+Private Sub Merge(ByVal r As Range, ByVal OffOn As xlSaveRestore)
+' ------------------------------------------------------------------------------
+' OffOn = xlSaveAndOff: un-merges range r by copying the top left
+'                       content to all cells in the merge area.
+' OffOn = xlRestore: Re-merges range r.
+' ------------------------------------------------------------------------------
+    Const PROC As String = "Merge"
+    
+    On Error GoTo eh
+    Dim rSel    As Range
+    Dim cel     As Range
+    Dim bEvents As Boolean
+    Dim row     As Range
+    
+    With Application
+        bEvents = .EnableEvents
+        .EnableEvents = False
+        .ScreenUpdating = False
+        
+        If OffOn = xlOffOnly Then
+            Set rSel = Selection
+            With r
+                '~~ Avoid automatic rows height adjustment by setting it explicit
+                For Each row In r.Rows
+                    With row: .RowHeight = .RowHeight + 0.01: End With
+                Next row
+                .UnMerge
+                '~~ In order not to loose the value in the top left cell
+                '~~ e.g. when a row is deleted or moved up or down
+                '~~ it is copied to all other cells. Merge will return to
+                '~~ the then top left cell's content.
+                r.Cells(1, 1).Copy
+                For Each cel In r.Cells
+                    If cel.Value = vbNullString Then
+                        cel.PasteSpecial Paste:=xlPasteAllExceptBorders, _
+                                     Operation:=xlNone, _
+                                    SkipBlanks:=False, _
+                                     Transpose:=False
+                     End If
+                Next cel
+                    
+                rSel.Select
+                Application.CutCopyMode = False
+            End With ' r
+            
+        ElseIf OffOn = xlOnOnly Then
+            '~~ Reset to original row height
+            For Each row In r.Rows
+                On Error Resume Next
+                With row: .RowHeight = .RowHeight - 0.01: End With
+            Next row
+            .DisplayAlerts = False
+            r.Merge
+            .DisplayAlerts = True
+                
+        End If
+        .EnableEvents = bEvents
+    End With ' application
+
+    Exit Sub
+eh:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
@@ -329,7 +529,7 @@ End Sub
 
 Public Sub MergedCells(ByVal SaveRestore As xlSaveRestore, _
               Optional ByRef dcGlbl As Variant = Null)
-' ------------------------------------------------------------
+' ------------------------------------------------------------------------------
 ' - xlOffOn = xlSaveAndOff: Any merge area associated with a
 '   in the current Selection is un-merged by saving the merge
 '   areas' address in a temporary range name and additionally
@@ -354,23 +554,22 @@ Public Sub MergedCells(ByVal SaveRestore As xlSaveRestore, _
 ' Requires: Reference to "Microsoft Scripting Runtime"
 '
 ' W. Rauschenberger Berlin June 2019
-' ------------------------------------------------------------
-Const PROC     As String = "MergedCells"
-Const sTempName As String = "rngTempMergeAreaName"
-Static dcLocl   As Dictionary
-Dim dcBorders   As Dictionary
-Dim dc          As Dictionary
-Dim r           As Range
-Dim i           As Long
-Dim k           As Long
-Dim cel         As Range
-Dim sMergeArea  As String
-Dim sName       As String
-Dim vKey        As Variant
-
-    On Error GoTo on_error
-    BoP ErrSrc(PROC)
+' ------------------------------------------------------------------------------
+    Const PROC     As String = "MergedCells"
+    Const sTempName As String = "rngTempMergeAreaName"
+    On Error GoTo eh
     
+    Static dcLocl   As Dictionary
+    Dim dcBorders   As Dictionary
+    Dim dc          As Dictionary
+    Dim r           As Range
+    Dim i           As Long
+    Dim k           As Long
+    Dim cel         As Range
+    Dim sMergeArea  As String
+    Dim sName       As String
+    Dim vKey        As Variant
+
     '~~ When provided, the global dictionary is used, else the local
     If Not IsNull(dcGlbl) Then
         If dcGlbl Is Nothing Then
@@ -425,11 +624,261 @@ Dim vKey        As Variant
         Next i
     End If
 
-exit_proc:
-    EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
     
-on_error:
+eh:
+#If Debugging = 1 Then
+    Stop: Resume
+#End If
+    ErrMsg ErrSrc(PROC)
+End Sub
+
+Private Sub NamesRemove(ByVal sName As String, _
+               Optional ByVal ws As Worksheet = Nothing, _
+               Optional ByVal bConfirm As Boolean = True)
+' ------------------------------------------------------------------------------
+' Removes the name sName from the list of Names provided
+' the name refers to ws which defaults to the ActiveSheet.
+' When there is no sName found sName is regarded a generic
+' part of names and all names with it are removed.
+' ------------------------------------------------------------------------------
+    Const PROC     As String = "NamesRemove"
+    Dim nm          As Name
+    Dim sNewName    As String
+    Dim sConfirm    As String
+    Dim bConfirmed  As Boolean
+    Dim sWsName     As String
+
+    If ws Is Nothing Then Set ws = ActiveSheet
+    sWsName = "='" & ws.Name & "'!"
+    If bConfirm = False Then bConfirmed = True Else bConfirmed = False
+    
+    For Each nm In Application.Names
+        If Left(nm.RefersTo, Len(sWsName)) = sWsName Then
+            If nm.Name = sName Then
+                '~~ If name is unique delete it right away
+                nm.Delete
+                GoTo xt
+            End If
+        End If
+    Next nm
+    
+    '~~ Regard sName as a generic name string
+again_confirmed:
+    For Each nm In Application.Names
+        If Left(nm.RefersTo, Len(sWsName)) = sWsName Then
+            '~~ Refers to the rquested sheet
+            If Left(nm.Name, Len(sName)) = sName Then
+                '~~ Is one of the generic names
+                If bConfirmed Then
+                    nm.Delete
+                Else
+                    sConfirm = sConfirm & vbLf & "'" & nm.Name & "'"
+                End If
+            End If
+        End If
+    Next nm
+    If bConfirmed Then GoTo xt
+    If bConfirm And sConfirm <> vbNullString Then
+        If MsgBox("Yes if the following renames are to be removed: " & sConfirm, vbYesNo, "Confirm removals") = vbYes Then
+            bConfirmed = True
+            GoTo again_confirmed:
+        Else
+            GoTo xt
+        End If
+    End If
+
+xt:
+End Sub
+
+Public Sub Obstructions(ByVal obs_save_restore As xlSaveRestore, _
+                        ByVal obs_ws As Worksheet, _
+               Optional ByVal obs_protected_sheets As Boolean = False, _
+               Optional ByVal obs_filtered_rows As Boolean = False, _
+               Optional ByVal obs_hidden_cols As Boolean = False, _
+               Optional ByVal obs_merged_cells As Boolean = False, _
+               Optional ByVal obs_range_names As Boolean = False, _
+               Optional ByVal obs_application_events As Boolean = False, _
+               Optional ByVal obs_form_events As Boolean = False)
+' ------------------------------------------------------------------------------
+' Saves and restores all obstructions indicated True. It is absolutely
+' essential that any Obstructions Save is paired by an exactly corres-
+' ponding CleanUp. Nested Save/CleanUp pairs, usually performed in
+' nested sub-procedures (which allows independant testing) is fully
+' suported. The sequence in which paired Restores are perfomed is not
+' relevant as long as they are exactly paired.
+'
+' Requires: - Reference to "Microsoft Scripting Runtime"
+'           - Module mErrHndlr
+'           - Module mExists
+' ------------------------------------------------------------------------------
+    Const PROC  As String = "Obstructions"
+    
+    On Error GoTo eh
+           
+    bObstructionHiddenCols = obs_hidden_cols
+    bObstructionFilteredRows = obs_filtered_rows
+
+    Select Case obs_save_restore
+        Case xlSaveAndOff
+            
+            '~~ 1. Save and turn off Application Events
+            If obs_application_events Then
+                AppEvents xlSaveAndOff
+            End If
+            
+            '~~ 2. Save and turn off sheet protection if requested or implicitely required
+            If obs_protected_sheets Or obs_filtered_rows Or obs_hidden_cols Or obs_merged_cells Then
+                SheetProtection xlSaveAndOff, obs_ws
+            End If
+            
+            '~~ 3. Save and turn off Autofilter  if applicable
+            If bObstructionFilteredRows Then
+                FilteredRows xlSaveAndOff, obs_ws
+            End If
+            
+            '~~ 4. Save and turn off hidden columns  if applicable
+            If bObstructionHiddenCols Then
+                HiddenColumns xlSaveAndOff, obs_ws
+            End If
+            
+            '~~ 5. Save and turn off any effected merged cells if applicable
+            If obs_merged_cells Then
+                MergedCells xlSaveAndOff
+            End If
+            
+            '~~ 6. Save and turn off used range names
+            If obs_range_names Then
+                RangeNames xlSaveAndOff, obs_ws
+            End If
+            
+        Case xlRestore
+            
+            '~~ 1. CleanUp all formulas using a obs_ws range name
+            If obs_range_names Then
+                RangeNames xlRestore, obs_ws
+            End If
+            
+            '~~ 2. CleanUp merge areas which were initially effected by the Selection
+            If obs_merged_cells Then
+                MergedCells xlRestore
+            End If
+            
+            '~~ 3. CleanUp Autofilter if applicable
+            If obs_filtered_rows Then
+                FilteredRows xlRestore, obs_ws
+            End If
+            
+            '~~ 4. CleanUp hidden columns
+            If obs_hidden_cols Then
+                HiddenColumns xlRestore, obs_ws
+            End If
+            
+            '~~ 5. CleanUp the sheets protection status when it initially was protected
+            If obs_protected_sheets Or obs_filtered_rows Or obs_hidden_cols Or obs_merged_cells Then
+                SheetProtection xlRestore, obs_ws
+            End If
+            
+            '~~ 6. CleanUp Application Events status
+            If obs_application_events Then
+                AppEvents xlRestore
+            End If
+            
+    End Select
+         
+xt: Exit Sub
+    
+eh:
+#If Debugging = 1 Then
+    Stop: Resume
+#End If
+    ErrMsg ErrSrc(PROC)
+End Sub
+
+Public Sub RangeNames(ByVal rn_save_restore As xlSaveRestore, _
+                      ByVal rn_ws As Worksheet)
+' ------------------------------------------------------------------------------
+' Names are regarded an obstruction when the Worksheet (rn_ws) is to be copied
+' or moved from one Workbook to another. Since the names for ranges in the
+' source Workshhet are not copied to the target Workbook all names are subject
+' to a decision stay or another decision.
+' rn_save_restore = xlSaveAndOff: All references to a name in the source
+' Worksheet (rn_ws) are turned into a direct range reference.
+' ------------------------------------------------------------------------------
+    Const PROC      As String = "RangeNames"
+    On Error GoTo eh
+    
+    Static dcLocl   As Dictionary   ' Keeps a record for each name replaced by its reference
+    Dim dcNames     As Dictionary   ' Names which refer to a range in the Worksheet rn_ws
+    Dim dcCells     As Dictionary   ' Keeps a record of each cell's formula which had been modified
+    Dim nm          As Name
+    Dim wsheet      As Worksheet
+    Dim cel         As Range
+    Dim v           As Variant
+    Dim wb          As Workbook
+
+    '~~ The Workbook of the Worksheet may not be found within this Application instance.
+    '~~ Application.Workbooks() may thus not be appropriate. GetOpenWorkbook will find
+    '~~ it in whichever Application instance
+    Set wb = mWrkbk.GetOpen(rn_ws.Parent.Name)
+    
+    Select Case rn_save_restore
+        Case xlSaveAndOff
+            '~~ Collect the relevant names
+            If dcNames Is Nothing Then Set dcNames = New Dictionary Else dcNames.RemoveAll
+            For Each nm In Application.Names
+'                Debug.Print "Collecting Name '" & nm.Name & "'"
+'                Debug.Print nm.NameLocal
+'                Debug.Print nm.RefersTo
+'                Debug.Print nm.RefersToLocal
+'                Debug.Print nm.RefersToR1C1
+'                Debug.Print nm.RefersToR1C1Local
+'                Debug.Print nm.RefersToRange.Address
+                dcNames.Add nm.Name, nm
+            Next nm
+            For Each nm In wb.Names
+'                Debug.Print "Collecting Name '" & nm.Name & "'"
+'                Debug.Print nm.NameLocal
+'                Debug.Print nm.RefersTo
+'                Debug.Print nm.RefersToLocal
+'                Debug.Print nm.RefersToR1C1
+'                Debug.Print nm.RefersToR1C1Local
+'                Debug.Print nm.RefersToRange.Address
+                On Error Resume Next
+                dcNames.Add nm.Name, nm
+            Next nm
+            For Each nm In rn_ws.Names
+'                Debug.Print "Collection Range Name '" & nm.Name & "'"
+'                Debug.Print nm.NameLocal
+'                Debug.Print nm.RefersTo
+'                Debug.Print nm.RefersToLocal
+'                Debug.Print nm.RefersToR1C1
+'                Debug.Print nm.RefersToR1C1Local
+'                Debug.Print nm.RefersToRange.Address
+                On Error Resume Next
+                dcNames.Add nm.Name, nm
+            Next nm
+            '~~ Collect cells with a formula referencing on of the collected names
+            For Each wsheet In wb.Sheets
+                For Each cel In wsheet.UsedRange.SpecialCells(xlCellTypeFormulas).HasFormula
+                    With cel
+                        For Each v In dcNames
+                            If InStr(.Formula, v) <> 0 Then
+'                                Debug.Print cel.Address & " formula uses '" & v & "'"
+                                dcCells.Add cel, .Formula ' At least one name is used
+                            End If
+                        Next v
+                    End With
+                Next cel
+            Next wsheet
+        
+        Case xlRestore
+        
+    End Select
+
+xt: Exit Sub
+    
+eh:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
@@ -438,27 +887,25 @@ End Sub
 
 Public Sub SheetProtection(ByVal SaveRestore As xlSaveRestore, _
                            ByVal ws As Worksheet)
-' --------------------------------------------------------------
-' - SaveRestore = xlSaveAndOff: Keeps (adds) a record of the
-'   Worksheet's (ws) protection status and turns protection off.
-'
-' - SaveRestore = xlRestore: CleanUp the sheet's (ws) protection
-'   status in case it was initially protected.
+' ------------------------------------------------------------------------------
+' - SaveRestore = xlSaveAndOff: Keeps (adds) a record of the Worksheet's (ws)
+'   protection status and turns protection off.
+' - SaveRestore = xlRestore: CleanUp the sheet's (ws) protection status in case
+'   it was initially protected.
 '
 ' Requires Reference to "Microsoft Scripting Runtime"
 '
 ' W. Rauschenberger Berlin June 2019
-' ----------------------------------------------------------------------
-Const PROC     As String = "SheetProtection"
-Static dcLocl   As Dictionary
-Dim col         As Range
-Dim dc          As Dictionary
-Dim i           As Long
-Dim cll         As Collection
-
-    On Error GoTo on_error
-    BoP ErrSrc(PROC)
+' ------------------------------------------------------------------------------
+    Const PROC     As String = "SheetProtection"
+    On Error GoTo eh
     
+    Static dcLocl   As Dictionary
+    Dim col         As Range
+    Dim dc          As Dictionary
+    Dim i           As Long
+    Dim cll         As Collection
+
     If dcProt Is Nothing Then Set dcProt = New Dictionary
     
     With ws
@@ -504,274 +951,48 @@ Dim cll         As Collection
         End Select
     End With
          
-exit_proc:
-    EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
     
-on_error:
+eh:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
     ErrMsg ErrSrc(PROC)
 End Sub
 
-Public Sub RangeNames(ByVal SaveRestore As xlSaveRestore, _
-                      ByVal ws As Worksheet)
-' ------------------------------------------------------
-' Names are regarded an obstruction when the Worksheet
-' (ws) is to be copied or moved from one Workbook to
-' another. Since the names for ranges in the source
-' Workshhet are not copied to the target Workbook all
-' names are subject to a decision stay or another
-' decision.
-' SaveRestore = xlSaveAndOff: All references to a
-' name in the source Worksheet (ws) are turned into a
-' direct range reference.
-'
-' -------------------------------------------------------
-Const PROC      As String = "RangeNames"
-Static dcLocl   As Dictionary   ' Keeps a record for each name replaced by its reference
-Dim dcNames     As Dictionary   ' Names which refer to a range in the Worksheet ws
-Dim dcCells     As Dictionary   ' Keeps a record of each cell's formula which had been modified
-Dim nm          As Name
-Dim wsheet      As Worksheet
-Dim cel         As Range
-Dim v           As Variant
-Dim wb          As Workbook
+Public Function WsColsHidden(ByVal ws As Worksheet) As Boolean
+' ------------------------------------------------------------------------------
+' Returns TRUE when at least one column in sheet (ws) is hidden
+' ------------------------------------------------------------------------------
+    Dim col As Range
 
-    On Error GoTo on_error
-    BoP ErrSrc(PROC)
-    
-    '~~ The Workbook of the Worksheet may not be found within this Application instance.
-    '~~ Application.Workbooks() may thus not be appropriate. GetOpenWorkbook will find
-    '~~ it in whichever Application instance
-    Set wb = mWrkbk.GetOpen(ws.Parent.Name)
-    
-    Select Case SaveRestore
-        Case xlSaveAndOff
-            '~~ Collect the relevant names
-            If dcNames Is Nothing Then Set dcNames = New Dictionary Else dcNames.RemoveAll
-            For Each nm In Application.Names
-'                Debug.Print "Collecting Name '" & nm.Name & "'"
-'                Debug.Print nm.NameLocal
-'                Debug.Print nm.RefersTo
-'                Debug.Print nm.RefersToLocal
-'                Debug.Print nm.RefersToR1C1
-'                Debug.Print nm.RefersToR1C1Local
-'                Debug.Print nm.RefersToRange.Address
-                dcNames.Add nm.Name, nm
-            Next nm
-            For Each nm In wb.Names
-'                Debug.Print "Collecting Name '" & nm.Name & "'"
-'                Debug.Print nm.NameLocal
-'                Debug.Print nm.RefersTo
-'                Debug.Print nm.RefersToLocal
-'                Debug.Print nm.RefersToR1C1
-'                Debug.Print nm.RefersToR1C1Local
-'                Debug.Print nm.RefersToRange.Address
-                On Error Resume Next
-                dcNames.Add nm.Name, nm
-            Next nm
-            For Each nm In ws.Names
-'                Debug.Print "Collection Range Name '" & nm.Name & "'"
-'                Debug.Print nm.NameLocal
-'                Debug.Print nm.RefersTo
-'                Debug.Print nm.RefersToLocal
-'                Debug.Print nm.RefersToR1C1
-'                Debug.Print nm.RefersToR1C1Local
-'                Debug.Print nm.RefersToRange.Address
-                On Error Resume Next
-                dcNames.Add nm.Name, nm
-            Next nm
-            '~~ Collect cells with a formula referencing on of the collected names
-            For Each wsheet In wb.Sheets
-                For Each cel In wsheet.UsedRange.SpecialCells(xlCellTypeFormulas).HasFormula
-                    With cel
-                        For Each v In dcNames
-                            If InStr(.Formula, v) <> 0 Then
-'                                Debug.Print cel.Address & " formula uses '" & v & "'"
-                                dcCells.Add cel, .Formula ' At least one name is used
-                            End If
-                        Next v
-                    End With
-                Next cel
-            Next wsheet
-        
-        Case xlRestore
-        
-    End Select
-
-exit_proc:
-    EoP ErrSrc(PROC)
-    Exit Sub
-    
-on_error:
-#If Debugging = 1 Then
-    Stop: Resume
-#End If
-    ErrMsg ErrSrc(PROC)
-End Sub
-
-Private Sub Merge(ByVal r As Range, ByVal OffOn As xlSaveRestore)
-' ---------------------------------------------------------------
-' OffOn = xlSaveAndOff: un-merges range r by copying the top left
-'                       content to all cells in the merge area.
-' OffOn = xlRestore: Re-merges range r.
-' ---------------------------------------------------------------
-Const PROC As String = "Merge"
-Dim rSel    As Range
-Dim cel     As Range
-Dim bEvents As Boolean
-Dim row     As Range
-
-    On Error GoTo on_error
-    
-    With Application
-        bEvents = .EnableEvents
-        .EnableEvents = False
-        .ScreenUpdating = False
-        
-        If OffOn = xlOffOnly Then
-            Set rSel = Selection
-            With r
-                '~~ Avoid automatic rows height adjustment by setting it explicit
-                For Each row In r.Rows
-                    With row: .RowHeight = .RowHeight + 0.01: End With
-                Next row
-                .UnMerge
-                '~~ In order not to loose the value in the top left cell
-                '~~ e.g. when a row is deleted or moved up or down
-                '~~ it is copied to all other cells. Merge will return to
-                '~~ the then top left cell's content.
-                r.Cells(1, 1).Copy
-                For Each cel In r.Cells
-                    If cel.Value = vbNullString Then
-                        cel.PasteSpecial Paste:=xlPasteAllExceptBorders, _
-                                     Operation:=xlNone, _
-                                    SkipBlanks:=False, _
-                                     Transpose:=False
-                     End If
-                Next cel
-                    
-                rSel.Select
-                Application.CutCopyMode = False
-            End With ' r
-            
-        ElseIf OffOn = xlOnOnly Then
-            '~~ Reset to original row height
-            For Each row In r.Rows
-                On Error Resume Next
-                With row: .RowHeight = .RowHeight - 0.01: End With
-            Next row
-            .DisplayAlerts = False
-            r.Merge
-            .DisplayAlerts = True
-                
+    WsColsHidden = False
+    For Each col In ws.UsedRange.Columns
+        If col.Hidden Then
+            WsColsHidden = True
+            Exit Function
         End If
-        .EnableEvents = bEvents
-    End With ' application
-
-    Exit Sub
-on_error:
-#If Debugging = 1 Then
-    Stop: Resume
-#End If
-    ErrMsg ErrSrc(PROC)
-End Sub
-
-Public Sub Borders(ByVal r As Range, _
-                   ByVal SaveRestore As xlSaveRestore, _
-                   ByRef dct As Dictionary)
-' ------------------------------------------------------
-' - xlOffOn = xlSaveOnly: Saves the border properties of
-'   Range r into the Dictionary dct.
-' - xlOnOff = xlRestore: Restores all border properties
-'   for Range r from the Dictionary dct.
-' ------------------------------------------------------
-Const PROC = "Borders"
-Dim cll             As Collection
-Dim bo              As Border
-Dim xlBi            As XlBordersIndex
-
-    On Error GoTo on_error
-    i = 0
+    Next col
     
-    Select Case SaveRestore
-        Case xlSaveOnly
-            Set dct = Nothing
-            Set dct = New Dictionary
-            For xlBi = xlDiagonalDown To xlInsideHorizontal ' = 5 to 12
-                With r.Borders(xlBi)
-                    Set cll = New Collection
-                    cll.Add .LineStyle
-                    cll.Add .Weight
-                    '~~ If there is a Color or a ColorIndex there is no ThemeColor
-                    cll.Add .Color
-                    cll.Add .ColorIndex
-                    
-                    If CStr(.Color) = vbNullString And CStr(.ColorIndex) = vbNullString Then
-                        cll.Add .ThemeColor
-                    Else
-                        cll.Add Null
-                    End If
-                    cll.Add .TintAndShade
-                End With
-                dct.Add xlBi, cll
-            Next xlBi
-            
-        Case xlRestore
-            For i = 0 To dct.Count - 1
-                xlBi = dct.Keys(i)
-                Set cll = dct.Items(i)
-                
-                With r.Borders(xlBi)
-                    .LineStyle = cll.Item(1)
-                    If Not .LineStyle = xlNone Then
-                        '~~ Any other border formationg only when there is a border
-                        .Weight = cll.Item(2)
-                        If Not IsNull(cll.Item(5)) Then
-                            .ThemeColor = cll.Item(5)
-                        Else
-                            '~~ Any color only when there is not ThemeColor
-                            .Color = cll.Item(3)
-                            .ColorIndex = cll.Item(4)
-                        End If
-                        If Not IsNull(cll.Item(6)) Then
-                            .TintAndShade = cll.Item(6)
-                        End If
-                    End If  ' LineStyle not is xlNone
-                End With
-                
-            Next i
-    End Select
-    
-    Exit Sub
-
-on_error:
-#If Debugging = 1 Then
-    Stop: Resume
-#End If
-    ErrMsg ErrSrc(PROC)
-End Sub
+End Function
 
 Public Sub WsCustomView(ByVal SaveRestore As xlSaveRestore, _
                         ByVal ws As Worksheet, _
                Optional ByVal bColsHidden As Boolean = False, _
                Optional ByVal bRowsFiltered As Boolean = False)
-' ----------------------------------------------------
+' ------------------------------------------------------------------------------
 '
-' ----------------------------------------------------
-Const PROC      As String = "WsCustomView"
-Dim dcCvsWs     As Dictionary
-Dim cv          As CustomView
-Dim cllCv       As Collection
-Dim cllProt     As Collection
-Dim wsTemp      As Worksheet
-Dim v           As Variant
-
-    On Error GoTo on_error
-    BoP ErrSrc(PROC)
+' ------------------------------------------------------------------------------
+    Const PROC      As String = "WsCustomView"
+    On Error GoTo eh
     
+    Dim dcCvsWs     As Dictionary
+    Dim cv          As CustomView
+    Dim cllCv       As Collection
+    Dim cllProt     As Collection
+    Dim wsTemp      As Worksheet
+    Dim v           As Variant
+
     If dcCvsWb Is Nothing Then Set dcCvsWb = New Dictionary
     
     Select Case SaveRestore
@@ -825,7 +1046,7 @@ Dim v           As Variant
                             .Remove .Count
                         Else
                             Set cv = .Item(.Count)
-                            If mCstmVw.Exists(wb, cv) Then
+                            If CstmVwExists(wb, cv) Then
                                 '~~ Temporarily protect all not concerned Worksheets
                                 '~~ save their sequence within the Workbook and move
                                 '~~ the concerned Worksheet to the front
@@ -862,127 +1083,24 @@ Dim v           As Variant
             End If
     End Select
 
-exit_proc:
-    EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
                  
-on_error:
+eh:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
     ErrMsg ErrSrc(PROC)
 End Sub
 
-Public Function WsColsHidden(ByVal ws As Worksheet) As Boolean
-' -------------------------------------------------------------
-' Returns TRUE when at least one column in sheet (ws) is hidden
-' -------------------------------------------------------------
-Dim col As Range
-
-    WsColsHidden = False
-    For Each col In ws.UsedRange.Columns
-        If col.Hidden Then
-            WsColsHidden = True
-            Exit Function
-        End If
-    Next col
-    
-End Function
-Public Sub CleanUp(Optional ByVal bForce As Boolean = False)
-' ----------------------------------------------------------
-' Does cleanup for all obstructions still waiting for
-' a CleanUp, likely not done due to an error.
-' When bForce is True all remaining Restores are done
-' without notice. This may be used in the error handling of
-' the project after the error message had been displayed.
-' ----------------------------------------------------------
-Dim cv      As CustomView
-Dim wb      As Workbook
-Dim ws      As Worksheet
-Dim v1      As Variant
-Dim v2      As Variant
-Dim v3      As Variant
-Dim cll     As Collection
-Dim sMsg    As String
-Dim dcCvsWs As Dictionary
-
-    '~~ CleanUp CustomViews
-    If Not dcCvsWb Is Nothing Then
-        For Each v1 In dcCvsWb
-            Set dcCvsWs = dcCvsWb.Item(v1)
-            For Each v2 In dcCvsWs
-                Set ws = v2
-                Set cll = dcCvsWs.Item(v2)
-                If cll.Count > 0 Then
-                    '~~ Remaining restore action!
-                    If bForce Then
-                        While cll.Count > 0: WsCustomView xlRestore, ws: Wend
-                    Else
-                        If TypeName(cll.Item(1)) = "Object" Then
-                            Set cv = cll.Item(1)
-                            If mCstmVw.Exists(wb, cv) Then
-                                If MsgBox(" CleanUp the yet unrestored CustomView for Worksheet '" & ws.Name & "' ?", vbYesNo, "Unrestored CustomView") = vbYes Then
-                                    While cll.Count > 0: WsCustomView xlRestore, ws: Wend
-                                End If
-                            End If
-                        End If
-                    End If
-                End If
-            Next v2
-        Next v1
-        dcCvsWb.RemoveAll
-    End If
-    
-    '~~ CleanUp Protection
-    If Not dcProt Is Nothing Then
-        If dcProt.Count > 0 Then
-            For Each v1 In dcProt
-                Set ws = v1
-                Set cll = dcProt.Item(v1)
-                With cll
-                    If .Count > 0 Then
-                        '~~ Remaining protection restore
-                        If bForce Then
-                            If .Item(1) Then ws.Protect Else ws.Unprotect
-                        Else
-                            If MsgBox("CleanUp the yet unrestored protection status for Worksheet '" & ws.Name & "' ?", vbYesNo, "Unrestored Protection Satus") = vbYes Then
-                                If .Item(1) Then ws.Protect Else ws.Unprotect
-                            End If
-                        End If
-                    End If
-                End With
-            Next v1
-        End If
-        dcProt.RemoveAll
-    End If
-    
-    '~~ CleanUp AppEvents (allway done silent)
-    If Not cllAppEvents Is Nothing Then
-        With cllAppEvents
-            If .Count > 0 Then Application.EnableEvents = .Item(1)
-        End With
-        Set cllAppEvents = Nothing
-    End If
-    
-    If Not dcMerged Is Nothing Then
-        '~~ Merge anything yet not re-merged
-    End If
-    
-    If sMsg <> vbNullString Then
-        MsgBox "Attention!" & vbLf & sMsg, vbCritical, "CleanUp of saved and set off bbstructions incomplete!"
-    End If
-
-End Sub
-
 Private Sub WsSequence(ByVal SaveRestore As xlSaveRestore, _
                        ByVal wb As Workbook)
-' ----------------------------------------------------------
-' Save and restore the sequence of all Worksheets in
-' the Worksheet's (ws) Workbook.
-' ----------------------------------------------------------
-Static cll  As Collection
-Dim ws      As Worksheet
-Dim i       As Long
+' ------------------------------------------------------------------------------
+' Saves and restore the sequence in which the Worksheets appear in the
+' Worksheet's (ws) Workbook.
+' ------------------------------------------------------------------------------
+    Static cll  As Collection
+    Dim ws      As Worksheet
+    Dim i       As Long
     
     Select Case SaveRestore
         Case xlSaveOnly
@@ -998,83 +1116,3 @@ Dim i       As Long
 
 End Sub
 
-Private Sub NamesRemove(ByVal sName As String, _
-               Optional ByVal ws As Worksheet = Nothing, _
-               Optional ByVal bConfirm As Boolean = True)
-' ---------------------------------------------------------
-' Removes the name sName from the list of Names provided
-' the name refers to ws which defaults to the ActiveSheet.
-' When there is no sName found sName is regarded a generic
-' part of names and all names with it are removed.
-' ---------------------------------------------------------
-Const PROC     As String = "NamesRemove"
-Dim nm          As Name
-Dim sNewName    As String
-Dim sConfirm    As String
-Dim bConfirmed  As Boolean
-Dim sWsName     As String
-
-    If ws Is Nothing Then Set ws = ActiveSheet
-    sWsName = "='" & ws.Name & "'!"
-    If bConfirm = False Then bConfirmed = True Else bConfirmed = False
-    
-    For Each nm In Application.Names
-        If Left(nm.RefersTo, Len(sWsName)) = sWsName Then
-            If nm.Name = sName Then
-                '~~ If name is unique delete it right away
-                nm.Delete
-                GoTo exit_proc
-            End If
-        End If
-    Next nm
-    
-    '~~ Regard sName as a generic name string
-again_confirmed:
-    For Each nm In Application.Names
-        If Left(nm.RefersTo, Len(sWsName)) = sWsName Then
-            '~~ Refers to the rquested sheet
-            If Left(nm.Name, Len(sName)) = sName Then
-                '~~ Is one of the generic names
-                If bConfirmed Then
-                    nm.Delete
-                Else
-                    sConfirm = sConfirm & vbLf & "'" & nm.Name & "'"
-                End If
-            End If
-        End If
-    Next nm
-    If bConfirmed Then GoTo exit_proc
-    If bConfirm And sConfirm <> vbNullString Then
-        If MsgBox("Yes if the following renames are to be removed: " & sConfirm, vbYesNo, "Confirm removals") = vbYes Then
-            bConfirmed = True
-            GoTo again_confirmed:
-        Else
-            GoTo exit_proc
-        End If
-    End If
-
-exit_proc:
-End Sub
-
-Private Sub ErrMsg( _
-             ByVal err_source As String, _
-    Optional ByVal err_no As Long = 0, _
-    Optional ByVal err_dscrptn As String = vbNullString)
-' ------------------------------------------------------
-' This Common Component does make use of a Common Error
-' Handling module (in order to limit the number of used
-' components. Instead it passes on any error to this
-' procedure.
-' ------------------------------------------------------
-    
-    If err_no = 0 Then err_no = Err.Number
-    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
-
-    Application.EnableEvents = True
-    Err.Raise Number:=err_no, Source:=err_source, Description:=err_dscrptn
-
-End Sub
-
-Private Function ErrSrc(ByVal sProc As String) As String
-    ErrSrc = "mObstructions" & "." & sProc
-End Function

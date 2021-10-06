@@ -110,18 +110,69 @@ Dim dct As Dictionary
     On Error GoTo on_error
     BoP ErrSrc(PROC)
     
-    mObstructions.Obstructions xlSaveAndOff, wsTest1, bAppEvents:=True, bSheetProtection:=True, bRowsFiltering:=True, bHiddenCols:=True, bCellsMerging:=True
+    mObstructions.Obstructions obs_save_restore:=xlSaveAndOff _
+                             , obs_ws:=wsTest1 _
+                             , obs_application_events:=True _
+                             , obs_protected_sheets:=True _
+                             , obs_filtered_rows:=True _
+                             , obs_hidden_cols:=True _
+                             , obs_merged_cells:=True
         
-    mObstructions.Obstructions xlSaveAndOff, wsTest1, bAppEvents:=True, bSheetProtection:=True, bRowsFiltering:=True, bHiddenCols:=True, bCellsMerging:=True
-    mObstructions.Obstructions xlRestore, wsTest1, bAppEvents:=True, bSheetProtection:=True, bRowsFiltering:=True, bHiddenCols:=True, bCellsMerging:=True
+    mObstructions.Obstructions obs_save_restore:=xlSaveAndOff _
+                             , obs_ws:=wsTest1 _
+                             , obs_application_events:=True _
+                             , obs_protected_sheets:=True _
+                             , obs_filtered_rows:=True _
+                             , obs_hidden_cols:=True _
+                             , obs_merged_cells:=True
     
-    mObstructions.Obstructions xlSaveAndOff, wsTest1, bAppEvents:=True, bSheetProtection:=True, bRowsFiltering:=True, bHiddenCols:=True, bCellsMerging:=True
-    mObstructions.Obstructions xlRestore, wsTest1, bAppEvents:=True, bSheetProtection:=True, bRowsFiltering:=True, bHiddenCols:=True, bCellsMerging:=True
+    mObstructions.Obstructions obs_save_restore:=xlRestore _
+                             , obs_ws:=wsTest1 _
+                             , obs_application_events:=True _
+                             , obs_protected_sheets:=True _
+                             , obs_filtered_rows:=True _
+                             , obs_hidden_cols:=True _
+                             , obs_merged_cells:=True
     
-    mObstructions.Obstructions xlSaveAndOff, wsTest1, bAppEvents:=True, bSheetProtection:=True, bRowsFiltering:=True, bHiddenCols:=True, bCellsMerging:=True
-    mObstructions.Obstructions xlRestore, wsTest1, bAppEvents:=True, bSheetProtection:=True, bRowsFiltering:=True, bHiddenCols:=True, bCellsMerging:=True
+    mObstructions.Obstructions obs_save_restore:=xlSaveAndOff _
+                             , obs_ws:=wsTest1 _
+                             , obs_application_events:=True _
+                             , obs_protected_sheets:=True _
+                             , obs_filtered_rows:=True _
+                             , obs_hidden_cols:=True _
+                             , obs_merged_cells:=True
+                             
+    mObstructions.Obstructions obs_save_restore:=xlRestore _
+                             , obs_ws:=wsTest1 _
+                             , obs_application_events:=True _
+                             , obs_protected_sheets:=True _
+                             , obs_filtered_rows:=True _
+                             , obs_hidden_cols:=True _
+                             , obs_merged_cells:=True
+    
+    mObstructions.Obstructions obs_save_restore:=xlSaveAndOff _
+                             , obs_ws:=wsTest1 _
+                             , obs_application_events:=True _
+                             , obs_protected_sheets:=True _
+                             , obs_filtered_rows:=True _
+                             , obs_hidden_cols:=True _
+                             , obs_merged_cells:=True
+                             
+    mObstructions.Obstructions obs_save_restore:=xlRestore _
+                             , obs_ws:=wsTest1 _
+                             , obs_application_events:=True _
+                             , obs_protected_sheets:=True _
+                             , obs_filtered_rows:=True _
+                             , obs_hidden_cols:=True _
+                             , obs_merged_cells:=True
         
-    mObstructions.Obstructions xlRestore, wsTest1, bAppEvents:=True, bSheetProtection:=True, bRowsFiltering:=True, bHiddenCols:=True, bCellsMerging:=True
+    mObstructions.Obstructions obs_save_restore:=xlRestore _
+                             , obs_ws:=wsTest1 _
+                             , obs_application_events:=True _
+                             , obs_protected_sheets:=True _
+                             , obs_filtered_rows:=True _
+                             , obs_hidden_cols:=True _
+                             , obs_merged_cells:=True
     
 exit_proc:
     EoP ErrSrc(PROC)
