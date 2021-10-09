@@ -22,14 +22,14 @@ Const PROC  As String = "Test_All"
     Debug.Assert wsTest3.ProtectContents = True
     mObstructions.CleanUp ' Let's see if something's still remaining. Investigation due in case!
     
-    Test_AppEvents
+    Test_ObstApplicationEvents
     Test_CellsMerging
     Test_ColHiding
     Test_Obstructions1
     Test_Obstructions2
-    Test_RangeNames
+    Test_ObstNamedRanges
     Test_RowsFiltering
-    Test_SheetProtection
+    Test_ObstProtectedSheets
     Test_WsCustomView
     
 exit_proc:
@@ -68,7 +68,7 @@ on_error:
     mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
-Public Sub Test_RangeNames()
+Public Sub Test_ObstNamedRanges()
 ' ------------------------------------------------------------------
 ' Range names imply a serious problem when a worksheet (wsSource)
 ' is about to be copied into another Workbook (wbTarget) since all
@@ -77,17 +77,17 @@ Public Sub Test_RangeNames()
 ' turned into comments and restored after the Worksheet had been
 ' copied.
 ' ------------------------------------------------------------------
-Const PROC = "Test_RangeNames"
+Const PROC = "Test_ObstNamedRanges"
     
     mObstructions.CleanUp
 
     On Error GoTo on_error
     BoP ErrSrc(PROC)
 
-    mObstructions.SheetProtection xlSaveAndOff, wsTest3
-        mObstructions.RangeNames xlSaveAndOff, wsTest3
-        mObstructions.RangeNames xlRestore, wsTest3
-    mObstructions.SheetProtection xlRestore, wsTest3
+    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest3
+        mObstructions.ObstNamedRanges xlSaveAndOff, wsTest3
+        mObstructions.ObstNamedRanges xlRestore, wsTest3
+    mObstructions.ObstProtectedSheets xlRestore, wsTest3
     
 exitProc:
     EoP ErrSrc(PROC)
@@ -110,68 +110,68 @@ Dim dct As Dictionary
     On Error GoTo on_error
     BoP ErrSrc(PROC)
     
-    mObstructions.Obstructions obs_save_restore:=xlSaveAndOff _
+    mObstructions.Obstructions obs_operation:=xlSaveAndOff _
                              , obs_ws:=wsTest1 _
                              , obs_application_events:=True _
                              , obs_protected_sheets:=True _
                              , obs_filtered_rows:=True _
-                             , obs_hidden_cols:=True _
+                             , obs_hidden_columns:=True _
                              , obs_merged_cells:=True
         
-    mObstructions.Obstructions obs_save_restore:=xlSaveAndOff _
+    mObstructions.Obstructions obs_operation:=xlSaveAndOff _
                              , obs_ws:=wsTest1 _
                              , obs_application_events:=True _
                              , obs_protected_sheets:=True _
                              , obs_filtered_rows:=True _
-                             , obs_hidden_cols:=True _
+                             , obs_hidden_columns:=True _
                              , obs_merged_cells:=True
     
-    mObstructions.Obstructions obs_save_restore:=xlRestore _
+    mObstructions.Obstructions obs_operation:=xlRestore _
                              , obs_ws:=wsTest1 _
                              , obs_application_events:=True _
                              , obs_protected_sheets:=True _
                              , obs_filtered_rows:=True _
-                             , obs_hidden_cols:=True _
+                             , obs_hidden_columns:=True _
                              , obs_merged_cells:=True
     
-    mObstructions.Obstructions obs_save_restore:=xlSaveAndOff _
+    mObstructions.Obstructions obs_operation:=xlSaveAndOff _
                              , obs_ws:=wsTest1 _
                              , obs_application_events:=True _
                              , obs_protected_sheets:=True _
                              , obs_filtered_rows:=True _
-                             , obs_hidden_cols:=True _
+                             , obs_hidden_columns:=True _
                              , obs_merged_cells:=True
                              
-    mObstructions.Obstructions obs_save_restore:=xlRestore _
+    mObstructions.Obstructions obs_operation:=xlRestore _
                              , obs_ws:=wsTest1 _
                              , obs_application_events:=True _
                              , obs_protected_sheets:=True _
                              , obs_filtered_rows:=True _
-                             , obs_hidden_cols:=True _
+                             , obs_hidden_columns:=True _
                              , obs_merged_cells:=True
     
-    mObstructions.Obstructions obs_save_restore:=xlSaveAndOff _
+    mObstructions.Obstructions obs_operation:=xlSaveAndOff _
                              , obs_ws:=wsTest1 _
                              , obs_application_events:=True _
                              , obs_protected_sheets:=True _
                              , obs_filtered_rows:=True _
-                             , obs_hidden_cols:=True _
+                             , obs_hidden_columns:=True _
                              , obs_merged_cells:=True
                              
-    mObstructions.Obstructions obs_save_restore:=xlRestore _
+    mObstructions.Obstructions obs_operation:=xlRestore _
                              , obs_ws:=wsTest1 _
                              , obs_application_events:=True _
                              , obs_protected_sheets:=True _
                              , obs_filtered_rows:=True _
-                             , obs_hidden_cols:=True _
+                             , obs_hidden_columns:=True _
                              , obs_merged_cells:=True
         
-    mObstructions.Obstructions obs_save_restore:=xlRestore _
+    mObstructions.Obstructions obs_operation:=xlRestore _
                              , obs_ws:=wsTest1 _
                              , obs_application_events:=True _
                              , obs_protected_sheets:=True _
                              , obs_filtered_rows:=True _
-                             , obs_hidden_cols:=True _
+                             , obs_hidden_columns:=True _
                              , obs_merged_cells:=True
     
 exit_proc:
@@ -200,7 +200,7 @@ Const PROC  As String = "Test_WsCustomView"
     On Error GoTo on_error
     BoP ErrSrc(PROC)
     
-    mObstructions.SheetProtection xlSaveAndOff, wsTest1
+    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest1
     mObstructions.WsCustomView xlSaveOnly, wsTest1, bRowsFiltered:=wsTest1.AutoFilterMode
     wsTest1.AutoFilterMode = False
         mObstructions.WsCustomView xlSaveOnly, wsTest1, bRowsFiltered:=wsTest1.AutoFilterMode
@@ -211,7 +211,7 @@ Const PROC  As String = "Test_WsCustomView"
     mObstructions.WsCustomView xlRestore, wsTest1
     
     Debug.Assert wsTest1.AutoFilterMode = True
-    mObstructions.SheetProtection xlRestore, wsTest1
+    mObstructions.ObstProtectedSheets xlRestore, wsTest1
     
 exit_proc:
     EoP ErrSrc(PROC)
@@ -222,29 +222,29 @@ on_error:
     mErH.ErrMsg ErrSrc(PROC)
 End Sub
 
-Public Sub Test_AppEvents()
+Public Sub Test_ObstApplicationEvents()
 ' ------------------------------------------------------
 ' The test procedure will halt at any assertion not met.
 ' ------------------------------------------------------
-Const PROC = "Test_AppEvents"
+Const PROC = "Test_ObstApplicationEvents"
 
     On Error GoTo on_error
     BoP ErrSrc(PROC)
     
     Application.EnableEvents = True
-    mObstructions.AppEvents xlSaveAndOff
+    mObstructions.ObstApplicationEvents xlSaveAndOff
     Debug.Assert Application.EnableEvents = False
     
     '~~ Any subsequent SaveAndOff and CleanUp (usually in nested sub procedures) must not change the status
-    mObstructions.AppEvents xlSaveAndOff
-    mObstructions.AppEvents xlRestore
+    mObstructions.ObstApplicationEvents xlSaveAndOff
+    mObstructions.ObstApplicationEvents xlRestore
     Debug.Assert Application.EnableEvents = False
-    mObstructions.AppEvents xlSaveAndOff
-    mObstructions.AppEvents xlRestore
+    mObstructions.ObstApplicationEvents xlSaveAndOff
+    mObstructions.ObstApplicationEvents xlRestore
     Debug.Assert Application.EnableEvents = False
     
     '~~ The final CleanUp restores the initially saved status
-    mObstructions.AppEvents xlRestore
+    mObstructions.ObstApplicationEvents xlRestore
     Debug.Assert Application.EnableEvents = True
     
 exit_proc:
@@ -257,7 +257,7 @@ on_error:
 
 End Sub
 
-Public Sub Test_SheetProtection()
+Public Sub Test_ObstProtectedSheets()
 ' ------------------------------------------------------------
 ' Whichever number of sheets, protected or not is unprotected,
 ' when finally their protection status is restored it is like
@@ -265,7 +265,7 @@ Public Sub Test_SheetProtection()
 ' Assertions proof the correctness of this obstruction
 ' implementation.
 ' ------------------------------------------------------------
-Const PROC = "Test_SheetProtection"
+Const PROC = "Test_ObstProtectedSheets"
     
     TestSetUp
     Debug.Assert wsTest1.ProtectContents = True
@@ -275,26 +275,26 @@ Const PROC = "Test_SheetProtection"
     On Error GoTo on_error
     BoP ErrSrc(PROC)
     
-    mObstructions.SheetProtection xlSaveAndOff, wsTest1
-    mObstructions.SheetProtection xlSaveAndOff, wsTest2
-    mObstructions.SheetProtection xlSaveAndOff, wsTest3
+    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest1
+    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest2
+    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest3
     
     '~~ Any subsequent xlSaveAndOff and xlRestore (usually in nested sub-procedures)
     '~~ must not have any effect on the final result
-    mObstructions.SheetProtection xlSaveAndOff, wsTest1
-    mObstructions.SheetProtection xlRestore, wsTest1
+    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest1
+    mObstructions.ObstProtectedSheets xlRestore, wsTest1
     
-    mObstructions.SheetProtection xlSaveAndOff, wsTest1
-    mObstructions.SheetProtection xlRestore, wsTest1
+    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest1
+    mObstructions.ObstProtectedSheets xlRestore, wsTest1
     
     '~~ Assert all sheets are unprotectec
     Debug.Assert wsTest1.ProtectContents = False
     Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest3.ProtectContents = False
     
-    mObstructions.SheetProtection xlRestore, wsTest1
-    mObstructions.SheetProtection xlRestore, wsTest2
-    mObstructions.SheetProtection xlRestore, wsTest3
+    mObstructions.ObstProtectedSheets xlRestore, wsTest1
+    mObstructions.ObstProtectedSheets xlRestore, wsTest2
+    mObstructions.ObstProtectedSheets xlRestore, wsTest3
     
     '~~ Assert only those initially protected are protected again
     Debug.Assert wsTest1.ProtectContents = True
@@ -335,59 +335,59 @@ Dim cv      As CustomView
     '~~ Note! Obstructions are saved-and-turned and restored Worksheetwise
     wsTest1.Activate
     Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
-    mObstructions.FilteredRows xlSaveAndOff, wsTest1
+    mObstructions.ObstFilteredRows xlSaveAndOff, wsTest1
     Debug.Assert wsTest1.AutoFilterMode = False:    Debug.Assert wsTest1.ProtectContents = True
     Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.FilteredRows xlRestore, wsTest1
+    mObstructions.ObstFilteredRows xlRestore, wsTest1
     Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
     Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
     
     wsTest2.Activate
-    mObstructions.FilteredRows xlSaveAndOff, wsTest2
+    mObstructions.ObstFilteredRows xlSaveAndOff, wsTest2
     Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
     Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.FilteredRows xlRestore, wsTest2
+    mObstructions.ObstFilteredRows xlRestore, wsTest2
     Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
     Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
     
     wsTest3.Activate
     Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.FilteredRows xlSaveAndOff, wsTest3
+    mObstructions.ObstFilteredRows xlSaveAndOff, wsTest3
     Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
     Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest3.AutoFilterMode = False:    Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.FilteredRows xlRestore, wsTest3
+    mObstructions.ObstFilteredRows xlRestore, wsTest3
     Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
     Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
         
     '~~ Note! Obstructions are handled Worksheet by Worksheet
-    mObstructions.FilteredRows xlSaveAndOff, wsTest1
+    mObstructions.ObstFilteredRows xlSaveAndOff, wsTest1
     Debug.Assert wsTest1.AutoFilterMode = False:    Debug.Assert wsTest1.ProtectContents = True
     Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.FilteredRows xlSaveAndOff, wsTest2
+    mObstructions.ObstFilteredRows xlSaveAndOff, wsTest2
     Debug.Assert wsTest1.AutoFilterMode = False:    Debug.Assert wsTest1.ProtectContents = True
     Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.FilteredRows xlSaveAndOff, wsTest3
+    mObstructions.ObstFilteredRows xlSaveAndOff, wsTest3
     Debug.Assert wsTest1.AutoFilterMode = False:    Debug.Assert wsTest1.ProtectContents = True
     Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest3.AutoFilterMode = False:    Debug.Assert wsTest3.ProtectContents = True
     
-    mObstructions.FilteredRows xlRestore, wsTest1
+    mObstructions.ObstFilteredRows xlRestore, wsTest1
     Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.AutoFilterMode = True
     Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest3.AutoFilterMode = False:    Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.FilteredRows xlRestore, wsTest2
+    mObstructions.ObstFilteredRows xlRestore, wsTest2
     Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
     Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest3.AutoFilterMode = False:    Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.FilteredRows xlRestore, wsTest3
+    mObstructions.ObstFilteredRows xlRestore, wsTest3
     Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
     Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
@@ -413,16 +413,16 @@ Const PROC = "Test_ColHiding"
     mObstructions.CleanUp bForce:=True ' Enforce remaining obstruction restores (without confirmation)
     TestSetUp
     
-    mObstructions.SheetProtection xlSaveAndOff, wsTest1
-    mObstructions.HiddenColumns xlSaveAndOff, wsTest1
+    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest1
+    mObstructions.ObstHiddenColumns xlSaveAndOff, wsTest1
     Debug.Assert wsTest1.TestColHidden.EntireColumn.Hidden = False
         '~~ Subsequent (nested) save/restore request (must not change the status)!
-        mObstructions.HiddenColumns xlSaveAndOff, wsTest1
+        mObstructions.ObstHiddenColumns xlSaveAndOff, wsTest1
         Debug.Assert wsTest1.TestColHidden.EntireColumn.Hidden = False
-        mObstructions.HiddenColumns xlRestore, wsTest1
+        mObstructions.ObstHiddenColumns xlRestore, wsTest1
         Debug.Assert wsTest1.TestColHidden.EntireColumn.Hidden = False
-    mObstructions.HiddenColumns xlRestore, wsTest1
-    mObstructions.SheetProtection xlRestore, wsTest1 ' unprotected with hidden cols save and off but not restored ?
+    mObstructions.ObstHiddenColumns xlRestore, wsTest1
+    mObstructions.ObstProtectedSheets xlRestore, wsTest1 ' unprotected with hidden cols save and off but not restored ?
     Debug.Assert wsTest1.TestColHidden.EntireColumn.Hidden = True
     
 exitProc:
