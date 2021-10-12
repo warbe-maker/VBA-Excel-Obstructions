@@ -728,8 +728,7 @@ Public Sub Obstructions(ByVal obs_operation As xlSaveRestore, _
 ' --------------------------------------------------------------------
 Const PROC          As String = "Obstructions"
     
-    On Error GoTo on_error
-    BoP ErrSrc(PROC)
+    On Error GoTo eh
            
     bObstructionHiddenCols = obs_hidden_columns
     bObstructionFilteredRows = obs_filtered_rows
@@ -801,11 +800,9 @@ Const PROC          As String = "Obstructions"
             
     End Select
          
-exit_proc:
-    EoP ErrSrc(PROC)
-    Exit Sub
+xt: Exit Sub
     
-on_error:
+eh:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
