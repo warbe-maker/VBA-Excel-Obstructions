@@ -705,6 +705,17 @@ again_confirmed:
 xt:
 End Sub
 
+Public Sub All(ByVal mode As xlSaveRestore)
+    mObstructions.Obstructions obs_operation:=mode _
+                             , obs_ws:=wsTest1 _
+                             , obs_application_events:=True _
+                             , obs_protected_sheets:=True _
+                             , obs_filtered_rows:=True _
+                             , obs_hidden_columns:=True _
+                             , obs_merged_cells:=True
+
+End Sub
+
 Public Sub Obstructions(ByVal obs_operation As xlSaveRestore, _
                         ByVal obs_ws As Worksheet, _
                Optional ByVal obs_protected_sheets As Boolean = False, _
