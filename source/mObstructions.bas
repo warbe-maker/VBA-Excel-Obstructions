@@ -458,6 +458,7 @@ xt:
 End Sub
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 Public Sub All(ByVal mode As xlSaveRestore)
     mObstructions.Obstructions obs_operation:=mode _
                              , obs_ws:=wsTest1 _
@@ -531,6 +532,41 @@ eh:
 End Sub
 >>>>>>> Stashed changes
 
+=======
+Public Sub ObstAll(ByVal obs_mode As xlSaveRestore, _
+               ByVal obs_ws As Worksheet)
+' ------------------------------------------------------------------------------
+' - obs_mode = xlSaveAndOff saves any obstruction and sets it off.
+' - obs_mode = xlRestore    restores any (saved and set off) obstruction.
+' Please note:
+' It is absolutely essential that any mObstructions.ObstAll obs_mode:=xlSaveAndOff
+' is paired by a corresponding mObstructions.ObstAll obs_mode:=xlRestore. Performing
+' additional Save/Restore operations in sub-procedures is fully suported. I.e.
+' any subsequent SaveAndOff does not cause any problem as long as the number of
+' Restore operations is identical.
+' ------------------------------------------------------------------------------
+    Const PROC = "ObstAll"
+
+    On Error GoTo eh
+
+    mObstructions.Obstructions obs_operation:=obs_mode _
+                             , obs_ws:=obs_ws _
+                             , obs_application_events:=True _
+                             , obs_filtered_rows:=True _
+                             , obs_hidden_columns:=True _
+                             , obs_merged_cells:=True _
+                             , obs_protected_sheets:=True
+
+xt: Exit Sub
+    
+eh:
+#If Debugging = 1 Then
+    Stop: Resume
+#End If
+    ErrMsg ErrSrc(PROC)
+End Sub
+
+>>>>>>> Stashed changes
 Public Sub ObstApplicationEvents(ByVal ae_operation As xlSaveRestore)
 ' ------------------------------------------------------------------------------
 ' - ae_operation = xlSaveAndOff
@@ -768,9 +804,15 @@ Public Sub ObstMergedCells(ByVal mc_operation As xlSaveRestore, _
                 dc.Remove sName                         ' Remove the no longer required item from the Dictionary
             End If
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             
     End Select
          
+=======
+        Next i
+    End If
+
+>>>>>>> Stashed changes
 =======
         Next i
     End If
