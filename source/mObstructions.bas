@@ -73,6 +73,45 @@ Private Function AppErr(ByVal app_err_no As Long) As Long
     AppErr = IIf(app_err_no < 0, app_err_no - vbObjectError, vbObjectError - app_err_no)
 End Function
 
+Public Sub ObstApplicationEvents(ByVal ae_operation As xlSaveRestore)
+' ------------------------------------------------------------------------------
+' - ae_operation = xlSaveAndOff
+'   Saves the current Application.EnableEvents status and turns it off. Any
+'   subsequent execution will just save the status (i.e. adds it to the stack)
+' - ae_operation = xlRestore
+'   Restores the last saved Application.EnableEvents status and removes the
+'   saved item.
+' ------------------------------------------------------------------------------
+    Const PROC = "ObstApplicationEvents"
+
+    On Error GoTo eh
+    
+    Select Case ae_operation
+        Case xlSaveAndOff
+            If cllAppEvents Is Nothing Then Set cllAppEvents = New Collection
+            cllAppEvents.Add Application.EnableEvents ' add status to stack
+            Application.EnableEvents = False
+            
+        Case xlRestore
+            If cllAppEvents Is Nothing Then GoTo xt
+            With cllAppEvents
+                If .Count > 0 Then
+                    '~~ restore last saved statis item and remove item (take it off from stack)
+                    Application.EnableEvents = .Item(cllAppEvents.Count)
+                    .Remove .Count
+                End If
+            End With
+    End Select
+
+xt: Exit Sub
+    
+eh:
+#If Debugging = 1 Then
+    Stop: Resume
+#End If
+    ErrMsg ErrSrc(PROC)
+End Sub
+
 Public Sub Borders(ByVal r As Range, _
                    ByVal SaveRestore As xlSaveRestore, _
                    ByRef dct As Dictionary)
@@ -320,292 +359,6 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mObstructions" & "." & sProc
 End Function
 
-Public Function IsCstmVwName(ByVal v As Variant) As Boolean
-    IsCstmVwName = VarType(v) = vbString
-End Function
-
-Public Function IsCstmVwObject(ByVal v As Variant) As Boolean
-
-    If VarType(v) = vbObject Then
-        If Not TypeName(v) = "Nothing" Then
-            IsCstmVwObject = TypeOf v Is CustomView
-        End If
-    End If
-    
-End Function
-
-Private Sub Merge(ByVal r As Range, ByVal OffOn As xlSaveRestore)
-' ------------------------------------------------------------------------------
-' OffOn = xlSaveAndOff: un-merges range r by copying the top left
-'                       content to all cells in the merge area.
-' OffOn = xlRestore: Re-merges range r.
-' ------------------------------------------------------------------------------
-    Const PROC As String = "Merge"
-    
-    On Error GoTo eh
-    Dim rSel    As Range
-    Dim cel     As Range
-    Dim bEvents As Boolean
-    Dim row     As Range
-    
-    With Application
-        bEvents = .EnableEvents
-        .EnableEvents = False
-        .ScreenUpdating = False
-        
-        If OffOn = xlOffOnly Then
-            Set rSel = Selection
-            With r
-                '~~ Avoid automatic rows height adjustment by setting it explicit
-                For Each row In r.Rows
-                    With row: .RowHeight = .RowHeight + 0.01: End With
-                Next row
-                .UnMerge
-                '~~ In order not to loose the value in the top left cell
-                '~~ e.g. when a row is deleted or moved up or down
-                '~~ it is copied to all other cells. Merge will return to
-                '~~ the then top left cell's content.
-                r.Cells(1, 1).Copy
-                For Each cel In r.Cells
-                    If cel.Value = vbNullString Then
-                        cel.PasteSpecial Paste:=xlPasteAllExceptBorders, _
-                                     Operation:=xlNone, _
-                                    SkipBlanks:=False, _
-                                     Transpose:=False
-                     End If
-                Next cel
-                    
-                rSel.Select
-                Application.CutCopyMode = False
-            End With ' r
-            
-        ElseIf OffOn = xlOnOnly Then
-            '~~ Reset to original row height
-            For Each row In r.Rows
-                On Error Resume Next
-                With row: .RowHeight = .RowHeight - 0.01: End With
-            Next row
-            .DisplayAlerts = False
-            r.Merge
-            .DisplayAlerts = True
-                
-        End If
-        .EnableEvents = bEvents
-    End With ' application
-
-    Exit Sub
-eh:
-#If Debugging = 1 Then
-    Stop: Resume
-#End If
-    ErrMsg ErrSrc(PROC)
-End Sub
-
-Private Sub NamesRemove(ByVal sName As String, _
-               Optional ByVal ws As Worksheet = Nothing, _
-               Optional ByVal bConfirm As Boolean = True)
-' ------------------------------------------------------------------------------
-' Removes the name sName from the list of Names provided
-' the name refers to ws which defaults to the ActiveSheet.
-' When there is no sName found sName is regarded a generic
-' part of names and all names with it are removed.
-' ------------------------------------------------------------------------------
-    Dim nm          As Name
-    Dim sConfirm    As String
-    Dim bConfirmed  As Boolean
-    Dim sWsName     As String
-
-    If ws Is Nothing Then Set ws = ActiveSheet
-    sWsName = "='" & ws.Name & "'!"
-    If bConfirm = False Then bConfirmed = True Else bConfirmed = False
-    
-    For Each nm In Application.Names
-        If Left(nm.RefersTo, Len(sWsName)) = sWsName Then
-            If nm.Name = sName Then
-                '~~ If name is unique delete it right away
-                nm.Delete
-                GoTo xt
-            End If
-        End If
-    Next nm
-    
-    '~~ Regard sName as a generic name string
-again_confirmed:
-    For Each nm In Application.Names
-        If Left(nm.RefersTo, Len(sWsName)) = sWsName Then
-            '~~ Refers to the rquested sheet
-            If Left(nm.Name, Len(sName)) = sName Then
-                '~~ Is one of the generic names
-                If bConfirmed Then
-                    nm.Delete
-                Else
-                    sConfirm = sConfirm & vbLf & "'" & nm.Name & "'"
-                End If
-            End If
-        End If
-    Next nm
-    If bConfirmed Then GoTo xt
-    If bConfirm And sConfirm <> vbNullString Then
-        If MsgBox("Yes if the following renames are to be removed: " & sConfirm, vbYesNo, "Confirm removals") = vbYes Then
-            bConfirmed = True
-            GoTo again_confirmed:
-        Else
-            GoTo xt
-        End If
-    End If
-
-xt:
-End Sub
-
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-Public Sub All(ByVal mode As xlSaveRestore)
-    mObstructions.Obstructions obs_operation:=mode _
-                             , obs_ws:=wsTest1 _
-                             , obs_application_events:=True _
-                             , obs_protected_sheets:=True _
-                             , obs_filtered_rows:=True _
-                             , obs_hidden_columns:=True _
-                             , obs_merged_cells:=True
-
-End Sub
-
-Public Sub Obstructions(ByVal obs_operation As xlSaveRestore, _
-                        ByVal obs_ws As Worksheet, _
-               Optional ByVal obs_protected_sheets As Boolean = False, _
-               Optional ByVal obs_filtered_rows As Boolean = False, _
-               Optional ByVal obs_hidden_columns As Boolean = False, _
-               Optional ByVal obs_merged_cells As Boolean = False, _
-               Optional ByVal obs_named_ranges As Boolean = False, _
-               Optional ByVal obs_application_events As Boolean = False, _
-               Optional ByVal obs_form_events As Boolean = False)
-' --------------------------------------------------------------------
-' Saves and restores all obstructions indicated True. It is absolutely
-' essential that any Obstructions Save is paired by an exactly corres-
-' ponding CleanUp. Nested Save/CleanUp pairs, usually performed in
-' nested sub-procedures (which allows independant testing) is fully
-' suported. The sequence in which paired Restores are perfomed is not
-' relevant as long as they are exactly paired.
-'
-' Requires: - Reference to "Microsoft Scripting Runtime"
-'           - Module mErrHndlr
-'           - Module mExists
-' --------------------------------------------------------------------
-Const PROC          As String = "Obstructions"
-    
-    On Error GoTo eh
-           
-    bObstructionHiddenCols = obs_hidden_columns
-    bObstructionFilteredRows = obs_filtered_rows
-=======
-Public Sub ObstAll(ByVal obs_mode As xlSaveRestore, _
-               ByVal obs_ws As Worksheet)
-' ------------------------------------------------------------------------------
-' - obs_mode = xlSaveAndOff saves any obstruction and sets it off.
-' - obs_mode = xlRestore    restores any (saved and set off) obstruction.
-' Please note:
-' It is absolutely essential that any mObstructions.ObstAll obs_mode:=xlSaveAndOff
-' is paired by a corresponding mObstructions.ObstAll obs_mode:=xlRestore. Performing
-' additional Save/Restore operations in sub-procedures is fully suported. I.e.
-' any subsequent SaveAndOff does not cause any problem as long as the number of
-' Restore operations is identical.
-' ------------------------------------------------------------------------------
-    Const PROC = "ObstAll"
-
-    On Error GoTo eh
-
-    mObstructions.Obstructions obs_operation:=obs_mode _
-                             , obs_ws:=obs_ws _
-                             , obs_application_events:=True _
-                             , obs_filtered_rows:=True _
-                             , obs_hidden_columns:=True _
-                             , obs_merged_cells:=True _
-                             , obs_protected_sheets:=True
-
-xt: Exit Sub
-    
-eh:
-#If Debugging = 1 Then
-    Stop: Resume
-#End If
-    ErrMsg ErrSrc(PROC)
-End Sub
->>>>>>> Stashed changes
-
-=======
-Public Sub ObstAll(ByVal obs_mode As xlSaveRestore, _
-               ByVal obs_ws As Worksheet)
-' ------------------------------------------------------------------------------
-' - obs_mode = xlSaveAndOff saves any obstruction and sets it off.
-' - obs_mode = xlRestore    restores any (saved and set off) obstruction.
-' Please note:
-' It is absolutely essential that any mObstructions.ObstAll obs_mode:=xlSaveAndOff
-' is paired by a corresponding mObstructions.ObstAll obs_mode:=xlRestore. Performing
-' additional Save/Restore operations in sub-procedures is fully suported. I.e.
-' any subsequent SaveAndOff does not cause any problem as long as the number of
-' Restore operations is identical.
-' ------------------------------------------------------------------------------
-    Const PROC = "ObstAll"
-
-    On Error GoTo eh
-
-    mObstructions.Obstructions obs_operation:=obs_mode _
-                             , obs_ws:=obs_ws _
-                             , obs_application_events:=True _
-                             , obs_filtered_rows:=True _
-                             , obs_hidden_columns:=True _
-                             , obs_merged_cells:=True _
-                             , obs_protected_sheets:=True
-
-xt: Exit Sub
-    
-eh:
-#If Debugging = 1 Then
-    Stop: Resume
-#End If
-    ErrMsg ErrSrc(PROC)
-End Sub
-
->>>>>>> Stashed changes
-Public Sub ObstApplicationEvents(ByVal ae_operation As xlSaveRestore)
-' ------------------------------------------------------------------------------
-' - ae_operation = xlSaveAndOff
-'   Saves the current Application.EnableEvents status and turns it off. Any
-'   subsequent execution will just save the status (i.e. adds it to the stack)
-' - ae_operation = xlRestore
-'   Restores the last saved Application.EnableEvents status and removes the
-'   saved item.
-' ------------------------------------------------------------------------------
-    Const PROC = "ObstApplicationEvents"
-
-    On Error GoTo eh
-    
-    Select Case ae_operation
-        Case xlSaveAndOff
-            If cllAppEvents Is Nothing Then Set cllAppEvents = New Collection
-            cllAppEvents.Add Application.EnableEvents ' add status to stack
-            Application.EnableEvents = False
-            
-        Case xlRestore
-            If cllAppEvents Is Nothing Then GoTo xt
-            With cllAppEvents
-                If .Count > 0 Then
-                    '~~ restore last saved statis item and remove item (take it off from stack)
-                    Application.EnableEvents = .Item(cllAppEvents.Count)
-                    .Remove .Count
-                End If
-            End With
-    End Select
-
-xt: Exit Sub
-    
-eh:
-#If Debugging = 1 Then
-    Stop: Resume
-#End If
-    ErrMsg ErrSrc(PROC)
-End Sub
-
 Public Sub ObstFilteredRows(ByVal fr_operation As xlSaveRestore, _
                             ByVal fr_ws As Worksheet)
 ' ------------------------------------------------------------------------------
@@ -713,6 +466,87 @@ eh:
     ErrMsg ErrSrc(PROC)
 End Sub
 
+Public Function IsCstmVwName(ByVal v As Variant) As Boolean
+    IsCstmVwName = VarType(v) = vbString
+End Function
+
+Public Function IsCstmVwObject(ByVal v As Variant) As Boolean
+
+    If VarType(v) = vbObject Then
+        If Not TypeName(v) = "Nothing" Then
+            IsCstmVwObject = TypeOf v Is CustomView
+        End If
+    End If
+    
+End Function
+
+Private Sub Merge(ByVal r As Range, ByVal OffOn As xlSaveRestore)
+' ------------------------------------------------------------------------------
+' OffOn = xlSaveAndOff: un-merges range r by copying the top left
+'                       content to all cells in the merge area.
+' OffOn = xlRestore: Re-merges range r.
+' ------------------------------------------------------------------------------
+    Const PROC As String = "Merge"
+    
+    On Error GoTo eh
+    Dim rSel    As Range
+    Dim cel     As Range
+    Dim bEvents As Boolean
+    Dim row     As Range
+    
+    With Application
+        bEvents = .EnableEvents
+        .EnableEvents = False
+        .ScreenUpdating = False
+        
+        If OffOn = xlOffOnly Then
+            Set rSel = Selection
+            With r
+                '~~ Avoid automatic rows height adjustment by setting it explicit
+                For Each row In r.Rows
+                    With row: .RowHeight = .RowHeight + 0.01: End With
+                Next row
+                .UnMerge
+                '~~ In order not to loose the value in the top left cell
+                '~~ e.g. when a row is deleted or moved up or down
+                '~~ it is copied to all other cells. Merge will return to
+                '~~ the then top left cell's content.
+                r.Cells(1, 1).Copy
+                For Each cel In r.Cells
+                    If cel.Value = vbNullString Then
+                        cel.PasteSpecial Paste:=xlPasteAllExceptBorders, _
+                                     Operation:=xlNone, _
+                                    SkipBlanks:=False, _
+                                     Transpose:=False
+                     End If
+                Next cel
+                    
+                rSel.Select
+                Application.CutCopyMode = False
+            End With ' r
+            
+        ElseIf OffOn = xlOnOnly Then
+            '~~ Reset to original row height
+            For Each row In r.Rows
+                On Error Resume Next
+                With row: .RowHeight = .RowHeight - 0.01: End With
+            Next row
+            .DisplayAlerts = False
+            r.Merge
+            .DisplayAlerts = True
+                
+        End If
+        .EnableEvents = bEvents
+    End With ' application
+
+    Exit Sub
+eh:
+#If Debugging = 1 Then
+    Stop: Resume
+#End If
+    ErrMsg ErrSrc(PROC)
+End Sub
+
 Public Sub ObstMergedCells(ByVal mc_operation As xlSaveRestore, _
                   Optional ByRef mc_global As Variant = Null)
 ' ------------------------------------------------------------------------------
@@ -803,21 +637,181 @@ Public Sub ObstMergedCells(ByVal mc_operation As xlSaveRestore, _
                 NamesRemove sName, r.Worksheet, False   ' Remove the no longer required range name
                 dc.Remove sName                         ' Remove the no longer required item from the Dictionary
             End If
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
+        Next i
+    End If
+
+xt: Exit Sub
+    
+eh:
+#If Debugging = 1 Then
+    Stop: Resume
+#End If
+    ErrMsg ErrSrc(PROC)
+End Sub
+
+Private Sub NamesRemove(ByVal sName As String, _
+               Optional ByVal ws As Worksheet = Nothing, _
+               Optional ByVal bConfirm As Boolean = True)
+' ------------------------------------------------------------------------------
+' Removes the name sName from the list of Names provided
+' the name refers to ws which defaults to the ActiveSheet.
+' When there is no sName found sName is regarded a generic
+' part of names and all names with it are removed.
+' ------------------------------------------------------------------------------
+    Dim nm          As Name
+    Dim sConfirm    As String
+    Dim bConfirmed  As Boolean
+    Dim sWsName     As String
+
+    If ws Is Nothing Then Set ws = ActiveSheet
+    sWsName = "='" & ws.Name & "'!"
+    If bConfirm = False Then bConfirmed = True Else bConfirmed = False
+    
+    For Each nm In Application.Names
+        If Left(nm.RefersTo, Len(sWsName)) = sWsName Then
+            If nm.Name = sName Then
+                '~~ If name is unique delete it right away
+                nm.Delete
+                GoTo xt
+            End If
+        End If
+    Next nm
+    
+    '~~ Regard sName as a generic name string
+again_confirmed:
+    For Each nm In Application.Names
+        If Left(nm.RefersTo, Len(sWsName)) = sWsName Then
+            '~~ Refers to the rquested sheet
+            If Left(nm.Name, Len(sName)) = sName Then
+                '~~ Is one of the generic names
+                If bConfirmed Then
+                    nm.Delete
+                Else
+                    sConfirm = sConfirm & vbLf & "'" & nm.Name & "'"
+                End If
+            End If
+        End If
+    Next nm
+    If bConfirmed Then GoTo xt
+    If bConfirm And sConfirm <> vbNullString Then
+        If MsgBox("Yes if the following renames are to be removed: " & sConfirm, vbYesNo, "Confirm removals") = vbYes Then
+            bConfirmed = True
+            GoTo again_confirmed:
+        Else
+            GoTo xt
+        End If
+    End If
+
+xt:
+End Sub
+
+Public Sub ObstAll(ByVal obs_mode As xlSaveRestore, _
+                   ByVal obs_ws As Worksheet)
+    mObstructions.Obstructions obs_operation:=obs_mode _
+                             , obs_ws:=obs_ws _
+                             , obs_application_events:=True _
+                             , obs_protected_sheets:=True _
+                             , obs_filtered_rows:=True _
+                             , obs_hidden_columns:=True _
+                             , obs_merged_cells:=True
+
+End Sub
+
+Public Sub Obstructions(ByVal obs_operation As xlSaveRestore, _
+                        ByVal obs_ws As Worksheet, _
+               Optional ByVal obs_protected_sheets As Boolean = False, _
+               Optional ByVal obs_filtered_rows As Boolean = False, _
+               Optional ByVal obs_hidden_columns As Boolean = False, _
+               Optional ByVal obs_merged_cells As Boolean = False, _
+               Optional ByVal obs_named_ranges As Boolean = False, _
+               Optional ByVal obs_application_events As Boolean = False, _
+               Optional ByVal obs_form_events As Boolean = False)
+' --------------------------------------------------------------------
+' Saves and restores all obstructions indicated True. It is absolutely
+' essential that any Obstructions Save is paired by an exactly corres-
+' ponding CleanUp. Nested Save/CleanUp pairs, usually performed in
+' nested sub-procedures (which allows independant testing) is fully
+' suported. The sequence in which paired Restores are perfomed is not
+' relevant as long as they are exactly paired.
+'
+' Requires: - Reference to "Microsoft Scripting Runtime"
+'           - Module mErrHndlr
+'           - Module mExists
+' --------------------------------------------------------------------
+Const PROC          As String = "Obstructions"
+    
+    On Error GoTo eh
+           
+    bObstructionHiddenCols = obs_hidden_columns
+    bObstructionFilteredRows = obs_filtered_rows
+
+    Select Case obs_operation
+        Case xlSaveAndOff
+            
+            '~~ 1. Save and turn off Application Events
+            If obs_application_events Then
+                ObstApplicationEvents xlSaveAndOff
+            End If
+            
+            '~~ 2. Save and turn off sheet protection if requested or implicitely required
+            If obs_protected_sheets Or obs_filtered_rows Or obs_hidden_columns Or obs_merged_cells Then
+                ObstProtectedSheets xlSaveAndOff, obs_ws
+            End If
+            
+            '~~ 3. Save and turn off Autofilter  if applicable
+            If bObstructionFilteredRows Then
+                ObstFilteredRows xlSaveAndOff, obs_ws
+            End If
+            
+            '~~ 4. Save and turn off hidden columns  if applicable
+            If bObstructionHiddenCols Then
+                ObstHiddenColumns xlSaveAndOff, obs_ws
+            End If
+            
+            '~~ 5. Save and turn off any effected merged cells if applicable
+            If obs_merged_cells Then
+                ObstMergedCells xlSaveAndOff
+            End If
+            
+            '~~ 6. Save and turn off used range names
+            If obs_named_ranges Then
+                ObstNamedRanges xlSaveAndOff, obs_ws
+            End If
+            
+        Case xlRestore
+            
+            '~~ 1. CleanUp all formulas using a ws range name
+            If obs_named_ranges Then
+                ObstNamedRanges xlRestore, obs_ws
+            End If
+            
+            '~~ 2. CleanUp merge areas which were initially effected by the Selection
+            If obs_merged_cells Then
+                ObstMergedCells xlRestore
+            End If
+            
+            '~~ 3. CleanUp Autofilter if applicable
+            If obs_filtered_rows Then
+                ObstFilteredRows xlRestore, obs_ws
+            End If
+            
+            '~~ 4. CleanUp hidden columns
+            If obs_hidden_columns Then
+                ObstHiddenColumns xlRestore, obs_ws
+            End If
+            
+            '~~ 5. CleanUp the sheets protection status when it initially was protected
+            If obs_protected_sheets Or obs_filtered_rows Or obs_hidden_columns Or obs_merged_cells Then
+                ObstProtectedSheets xlRestore, obs_ws
+            End If
+            
+            '~~ 6. CleanUp Application Events status
+            If obs_application_events Then
+                ObstApplicationEvents xlRestore
+            End If
             
     End Select
          
-=======
-        Next i
-    End If
-
->>>>>>> Stashed changes
-=======
-        Next i
-    End If
-
->>>>>>> Stashed changes
 xt: Exit Sub
     
 eh:
@@ -985,111 +979,6 @@ Public Sub ObstProtectedSheets(ByVal ps_operation As xlSaveRestore, _
 xt: Exit Sub
     
 eh:
-#If Debugging = 1 Then
-    Stop: Resume
-#End If
-    ErrMsg ErrSrc(PROC)
-End Sub
-
-Public Sub Obstructions(ByVal obs_operation As xlSaveRestore, _
-                        ByVal obs_ws As Worksheet, _
-               Optional ByVal obs_protected_sheets As Boolean = False, _
-               Optional ByVal obs_filtered_rows As Boolean = False, _
-               Optional ByVal obs_hidden_columns As Boolean = False, _
-               Optional ByVal obs_merged_cells As Boolean = False, _
-               Optional ByVal obs_named_ranges As Boolean = False, _
-               Optional ByVal obs_application_events As Boolean = False, _
-               Optional ByVal obs_form_events As Boolean = False)
-' --------------------------------------------------------------------
-' Saves and restores all obstructions indicated True. It is absolutely
-' essential that any Obstructions Save is paired by an exactly corres-
-' ponding CleanUp. Nested Save/CleanUp pairs, usually performed in
-' nested sub-procedures (which allows independant testing) is fully
-' suported. The sequence in which paired Restores are perfomed is not
-' relevant as long as they are exactly paired.
-'
-' Requires: - Reference to "Microsoft Scripting Runtime"
-'           - Module mErrHndlr
-'           - Module mExists
-' --------------------------------------------------------------------
-Const PROC          As String = "Obstructions"
-    
-    On Error GoTo on_error
-           
-    bObstructionHiddenCols = obs_hidden_columns
-    bObstructionFilteredRows = obs_filtered_rows
-
-    Select Case obs_operation
-        Case xlSaveAndOff
-            
-            '~~ 1. Save and turn off Application Events
-            If obs_application_events Then
-                ObstApplicationEvents xlSaveAndOff
-            End If
-            
-            '~~ 2. Save and turn off sheet protection if requested or implicitely required
-            If obs_protected_sheets Or obs_filtered_rows Or obs_hidden_columns Or obs_merged_cells Then
-                ObstProtectedSheets xlSaveAndOff, obs_ws
-            End If
-            
-            '~~ 3. Save and turn off Autofilter  if applicable
-            If bObstructionFilteredRows Then
-                ObstFilteredRows xlSaveAndOff, obs_ws
-            End If
-            
-            '~~ 4. Save and turn off hidden columns  if applicable
-            If bObstructionHiddenCols Then
-                ObstHiddenColumns xlSaveAndOff, obs_ws
-            End If
-            
-            '~~ 5. Save and turn off any effected merged cells if applicable
-            If obs_merged_cells Then
-                ObstMergedCells xlSaveAndOff
-            End If
-            
-            '~~ 6. Save and turn off used range names
-            If obs_named_ranges Then
-                ObstNamedRanges xlSaveAndOff, obs_ws
-            End If
-            
-        Case xlRestore
-            
-            '~~ 1. CleanUp all formulas using a ws range name
-            If obs_named_ranges Then
-                ObstNamedRanges xlRestore, obs_ws
-            End If
-            
-            '~~ 2. CleanUp merge areas which were initially effected by the Selection
-            If obs_merged_cells Then
-                ObstMergedCells xlRestore
-            End If
-            
-            '~~ 3. CleanUp Autofilter if applicable
-            If obs_filtered_rows Then
-                ObstFilteredRows xlRestore, obs_ws
-            End If
-            
-            '~~ 4. CleanUp hidden columns
-            If obs_hidden_columns Then
-                ObstHiddenColumns xlRestore, obs_ws
-            End If
-            
-            '~~ 5. CleanUp the sheets protection status when it initially was protected
-            If obs_protected_sheets Or obs_filtered_rows Or obs_hidden_columns Or obs_merged_cells Then
-                ObstProtectedSheets xlRestore, obs_ws
-            End If
-            
-            '~~ 6. CleanUp Application Events status
-            If obs_application_events Then
-                ObstApplicationEvents xlRestore
-            End If
-            
-    End Select
-         
-exit_proc:
-    Exit Sub
-    
-on_error:
 #If Debugging = 1 Then
     Stop: Resume
 #End If
