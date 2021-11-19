@@ -323,37 +323,122 @@ eh:
     ErrMsg ErrSrc(PROC)
 End Function
 
-Private Sub ErrMsg( _
-             ByVal err_source As String, _
-    Optional ByVal err_no As Long = 0, _
-    Optional ByVal err_dscrptn As String = vbNullString, _
-    Optional ByVal err_line As Long = 0)
+Private Function ErrMsg(ByVal err_source As String, _
+               Optional ByVal err_no As Long = 0, _
+               Optional ByVal err_dscrptn As String = vbNullString, _
+               Optional ByVal err_line As Long = 0) As Variant
 ' ------------------------------------------------------------------------------
-' This 'Common VBA Component' uses only a kind of minimum error handling!
+' This is a kind of universal error message which includes a debugging option.
+' It may be copied into any module - turned into a Private function. When the/my
+' Common VBA Error Handling Component (ErH) is installed and the Conditional
+' Compile Argument 'CommErHComp = 1' the error message will be displayed by
+' means of the Common VBA Message Component (fMsg, mMsg).
+'
+' Usage: When this procedure is copied as a Private Function into any desired
+'        module an error handling which consideres the possible Conditional
+'        Compile Argument 'Debugging = 1' will look as follows
+'
+'            Const PROC = "procedure-name"
+'            On Error Goto eh
+'        ....
+'        xt: Exit Sub/Function/Property
+'
+'        eh: Select Case ErrMsg(ErrSrc(PROC)
+'               Case vbYes: Stop: Resume
+'               Case vbNo:  Resume Next
+'               Case Else:  Goto xt
+'            End Select
+'        End Sub/Function/Property
+'
+'        The above may appear a lot of code lines but will be a godsend in case
+'        of an error!
+'
+' Used:  - For programmed application errors (Err.Raise AppErr(n), ....) the
+'          function AppErr will be used which turns the positive number into a
+'          negative one. The error message will regard a negative error number
+'          as an 'Application Error' and will use AppErr to turn it back for
+'          the message into its original positive number. Together with the
+'          ErrSrc there will be no need to maintain numerous different error
+'          numbers for a VB-Project.
+'        - The caller provides the source of the error through the module
+'          specific function ErrSrc(PROC) which adds the module name to the
+'          procedure name.
 ' ------------------------------------------------------------------------------
-    Dim ErrNo   As Long
-    Dim ErrDesc As String
-    Dim ErrType As String
-    Dim ErrLine As Long
-    Dim AtLine  As String
-    Dim ErrMsg  As String
+    Dim ErrBttns    As Variant
+    Dim ErrAtLine   As String
+    Dim ErrDesc     As String
+    Dim ErrLine     As Long
+    Dim ErrNo       As Long
+    Dim ErrSrc      As String
+    Dim ErrText     As String
+    Dim ErrTitle    As String
+    Dim ErrType     As String
     
+    '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
-    If err_no < 0 Then
-        ErrNo = AppErr(err_no)
-        ErrType = "Applicatin error "
-    Else
-        ErrNo = err_no
-        ErrType = "Runtime error "
-    End If
-    If err_dscrptn = vbNullString Then ErrDesc = Err.Description Else ErrDesc = err_dscrptn
     If err_line = 0 Then ErrLine = Erl
-    If err_line <> 0 Then AtLine = " at line " & err_line
-    MsgBox Title:=ErrType & ErrNo & " in " & err_source _
-         , Prompt:="Error : " & ErrDesc & vbLf & _
-                   "Source: " & err_source & AtLine _
-         , Buttons:=vbCritical
-End Sub
+    If err_source = vbNullString Then err_source = Err.Source
+    If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
+    If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
+    
+    '~~ Determine the type of error
+    Select Case err_no
+        Case Is < 0
+            ErrNo = AppErr(err_no)
+            ErrType = "Application Error "
+        Case Else
+            ErrNo = err_no
+            If (InStr(1, err_dscrptn, "DAO") <> 0 _
+            Or InStr(1, err_dscrptn, "ODBC Teradata Driver") <> 0 _
+            Or InStr(1, err_dscrptn, "ODBC") <> 0 _
+            Or InStr(1, err_dscrptn, "Oracle") <> 0) _
+            Then ErrType = "Database Error " _
+            Else ErrType = "VB Runtime Error "
+    End Select
+    
+    If err_source <> vbNullString Then ErrSrc = " in: """ & err_source & """"   ' assemble ErrSrc from available information"
+    If err_line <> 0 Then ErrAtLine = " at line " & err_line                    ' assemble ErrAtLine from available information
+    ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")         ' assemble ErrTitle from available information
+       
+    ErrText = "Error: " & vbLf & _
+              err_dscrptn & vbLf & vbLf & _
+              "Source: " & vbLf & _
+              err_source & ErrAtLine
+    
+#If Debugging Then
+    ErrBttns = vbYesNoCancel
+    ErrText = ErrText & vbLf & vbLf & _
+              "Debugging:" & vbLf & _
+              "Yes    = Resume error line" & vbLf & _
+              "No     = Resume Next (skip error line)" & vbLf & _
+              "Cancel = Terminate"
+#Else
+    ErrBttns = vbCritical
+#End If
+    
+#If CommErHComp Then
+    '~~ When the Common VBA Error Handling Component (ErH) is installed/used by in the VB-Project
+    ErrMsg = mErH.ErrMsg(err_source:=err_source, err_number:=err_no, err_dscrptn:=err_dscrptn, err_line:=err_line)
+    '~~ Translate back the elaborated reply buttons mErrH.ErrMsg displays and returns to the simple yes/No/Cancel
+    '~~ replies with the VBA MsgBox.
+    Select Case ErrMsg
+        Case mErH.DebugOptResumeErrorLine:  ErrMsg = vbYes
+        Case mErH.DebugOptResumeNext:       ErrMsg = vbNo
+        Case Else:                          ErrMsg = vbCancel
+    End Select
+#Else
+    '~~ When the Common VBA Error Handling Component (ErH) is not used/installed there might still be the
+    '~~ Common VBA Message Component (Msg) be installed/used
+#If CommMsgComp Then
+    ErrMsg = mMsg.ErrMsg(err_source:=err_source)
+#Else
+    '~~ None of the Common Components is installed/used
+    ErrMsg = MsgBox(Title:=ErrTitle _
+                  , Prompt:=ErrText _
+                  , Buttons:=ErrBttns)
+#End If
+#End If
+End Function
 
 Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mObstructions" & "." & sProc
@@ -492,7 +577,7 @@ Private Sub Merge(ByVal r As Range, ByVal OffOn As xlSaveRestore)
     Dim rSel    As Range
     Dim cel     As Range
     Dim bEvents As Boolean
-    Dim row     As Range
+    Dim rRow    As Range
     
     With Application
         bEvents = .EnableEvents
@@ -503,9 +588,9 @@ Private Sub Merge(ByVal r As Range, ByVal OffOn As xlSaveRestore)
             Set rSel = Selection
             With r
                 '~~ Avoid automatic rows height adjustment by setting it explicit
-                For Each row In r.Rows
-                    With row: .RowHeight = .RowHeight + 0.01: End With
-                Next row
+                For Each rRow In r.Rows
+                    With rRow: .RowHeight = .RowHeight + 0.01: End With
+                Next rRow
                 .UnMerge
                 '~~ In order not to loose the value in the top left cell
                 '~~ e.g. when a row is deleted or moved up or down
@@ -527,10 +612,10 @@ Private Sub Merge(ByVal r As Range, ByVal OffOn As xlSaveRestore)
             
         ElseIf OffOn = xlOnOnly Then
             '~~ Reset to original row height
-            For Each row In r.Rows
+            For Each rRow In r.Rows
                 On Error Resume Next
-                With row: .RowHeight = .RowHeight - 0.01: End With
-            Next row
+                With rRow: .RowHeight = .RowHeight - 0.01: End With
+            Next rRow
             .DisplayAlerts = False
             r.Merge
             .DisplayAlerts = True
@@ -571,8 +656,9 @@ Public Sub ObstMergedCells(ByVal mc_operation As xlSaveRestore, _
 '
 ' W. Rauschenberger Berlin June 2019
 ' ------------------------------------------------------------------------------
-    Const PROC     As String = "ObstMergedCells"
-    Const sTempName As String = "rngTempMergeAreaName"
+    Const PROC              As String = "ObstMergedCells"
+    Const OBST_TEMP_NAME    As String = "ObstructionTempNameMergeArea"
+    
     On Error GoTo eh
     
     Static dcLocl   As Dictionary
@@ -604,7 +690,7 @@ Public Sub ObstMergedCells(ByVal mc_operation As xlSaveRestore, _
         For Each cel In Intersect(r.Worksheet.UsedRange, r.EntireRow).Cells
             With cel
                 If .MergeCells Then
-                    i = i + 1:  sName = sTempName & i
+                    i = i + 1:  sName = OBST_TEMP_NAME & i
                     sMergeArea = Replace(.MergeArea.Address(RowAbsolute:=False), "$", vbNullString)
                     If Not dc.Exists(sName) Then
                         '~~ When the added range names are 0
@@ -614,10 +700,10 @@ Public Sub ObstMergedCells(ByVal mc_operation As xlSaveRestore, _
                             If TypeName(vKey) = "String" Then k = k + 1 ' If there are also other things in the dictionary
                         Next vKey
                         If k = 0 Then
-                            NamesRemove sTempName, r.Worksheet, False
+                            RangeNamesRemove nr_wb:=r.Worksheet.Parent, nr_ws:=r.Worksheet, nr_generic_name:=OBST_TEMP_NAME
                         End If
                         Set r = Range(sMergeArea)
-                        Application.Names.Add sName, r
+                        RangeNameAdd nm_ws:=r.Worksheet, nm_wb:=r.Worksheet.Parent, nm_name:=sName, nm_range:=r
                         Borders r, xlSaveOnly, dcBorders   ' Get format properties
                         dc.Add sName, dcBorders            ' Save range name and border properties to dictionary
                         Merge r, xlOffOnly
@@ -634,7 +720,7 @@ Public Sub ObstMergedCells(ByVal mc_operation As xlSaveRestore, _
                 Set r = Range(sName)                    ' Set the to-be-merged range
                 Merge r, xlOnOnly                       ' Merge the range named sName
                 Borders r, xlRestore, dcBorders         ' CleanUp the border proprties
-                NamesRemove sName, r.Worksheet, False   ' Remove the no longer required range name
+                RangeNamesRemove nr_wb:=r.Worksheet.Parent, nr_ws:=r.Worksheet, nr_generic_name:=sName  ' Remove the no longer required range name
                 dc.Remove sName                         ' Remove the no longer required item from the Dictionary
             End If
         Next i
@@ -649,60 +735,94 @@ eh:
     ErrMsg ErrSrc(PROC)
 End Sub
 
-Private Sub NamesRemove(ByVal sName As String, _
-               Optional ByVal ws As Worksheet = Nothing, _
-               Optional ByVal bConfirm As Boolean = True)
+Private Sub RangeNameAdd(ByVal nm_ws As Worksheet, _
+                         ByVal nm_name As String, _
+                         ByVal nm_range As Range, _
+                Optional ByVal nm_wb As Workbook = Nothing, _
+                Optional ByVal nm_visible As Boolean = True)
 ' ------------------------------------------------------------------------------
-' Removes the name sName from the list of Names provided
-' the name refers to ws which defaults to the ActiveSheet.
-' When there is no sName found sName is regarded a generic
-' part of names and all names with it are removed.
+' Add the name (nm_name) for the range (nm_range)
+' a) with Worksheet scope when no Workbook is provided
+' b) with Workbook scope when a Workbook is provided
 ' ------------------------------------------------------------------------------
-    Dim nm          As Name
-    Dim sConfirm    As String
-    Dim bConfirmed  As Boolean
-    Dim sWsName     As String
+    Const PROC = "RangeNameAdd"
+    
+    On Error GoTo eh
+    Dim nm  As Name
+    Dim nms As Names
+    
+    If nm_wb Is Nothing Then Set nms = nm_ws.Names Else Set nms = nm_wb.Names
+    nms.Add Name:=nm_name, RefersTo:=nm_ws.Range(nm_range.Address), Visible:=nm_visible
+    If Err.Number <> 0 Then
+         Err.Raise AppErr(3), ErrSrc(PROC), "Adding a name failed with: Error " & Err.Number & " " & Err.Description & """"
+    End If
+        
+xt: Exit Sub
 
-    If ws Is Nothing Then Set ws = ActiveSheet
-    sWsName = "='" & ws.Name & "'!"
-    If bConfirm = False Then bConfirmed = True Else bConfirmed = False
+eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+End Sub
+
+Private Sub RangeNamesRemove(ByVal nr_ws As Worksheet, _
+                             ByVal nr_generic_name As String, _
+                    Optional ByVal nr_wb As Workbook = Nothing, _
+                    Optional ByRef nr_deleted As Long = 0, _
+                    Optional ByRef nr_failed As Long = 0)
+' ------------------------------------------------------------------------------
+' Deletes all range names in Workbook (nr_wb)
+' a) which do begin with the generic name (nr_generic_name) when a Workbook is
+'    provided (Workbook scope names)
+' b) which do begin with "(nr_ws).Name!(generic_name_part)" when no Workbook
+'    is provided (Worksheet scope names)
+' Note 1: Application.Names and Names both refer to ActiveWorkbook.Names. The
+'         argument nr_wb avoids any confusion between ActiveWorkbook,
+'         ThisWorkbok or any other Workbook.
+' Note 2: Names with Worksheet scope are prefixed with "'(nr_ws).Name'!".
+' The procedure is Public because it is also used in the wbRowsTest code.
+' ------------------------------------------------------------------------------
+    Const PROC          As String = "RangeNamesRemove"
+    Const DONT_DELETE   As String = "Print_Area"
     
-    For Each nm In Application.Names
-        If Left(nm.RefersTo, Len(sWsName)) = sWsName Then
-            If nm.Name = sName Then
-                '~~ If name is unique delete it right away
-                nm.Delete
-                GoTo xt
-            End If
-        End If
-    Next nm
+    On Error GoTo eh
+    Dim nm              As Name
+    Dim nms             As Names
+    Dim sName           As String
+    Dim sComparewith    As String
     
-    '~~ Regard sName as a generic name string
-again_confirmed:
-    For Each nm In Application.Names
-        If Left(nm.RefersTo, Len(sWsName)) = sWsName Then
-            '~~ Refers to the rquested sheet
-            If Left(nm.Name, Len(sName)) = sName Then
-                '~~ Is one of the generic names
-                If bConfirmed Then
-                    nm.Delete
+    nr_deleted = 0
+    nr_failed = 0
+    
+    '~~ Determine which scope is ment
+    If nr_wb Is Nothing Then
+        '~~ Worksheet scope
+        sComparewith = "'!" & nr_generic_name
+        Set nms = nr_ws.Names
+    Else
+        '~~ Workbook scope
+        sComparewith = nr_generic_name
+        Set nms = nr_wb.Names
+    End If
+    
+    '~~ Delete the names in the ment scope
+    For Each nm In nms
+        sName = nm.Name
+        If Len(sName) >= Len(sComparewith) Then
+            If Left(sName, Len(sComparewith)) = sComparewith _
+            Or InStr(sName, sComparewith) <> 0 Then
+                '~~ Delete the generic name
+                On Error Resume Next
+                nm.Delete           ' Delete the name
+                If Err.Number = 0 Then
+                    nr_deleted = nr_deleted + 1
                 Else
-                    sConfirm = sConfirm & vbLf & "'" & nm.Name & "'"
+                    nr_failed = nr_failed + 1
                 End If
             End If
         End If
-    Next nm
-    If bConfirmed Then GoTo xt
-    If bConfirm And sConfirm <> vbNullString Then
-        If MsgBox("Yes if the following renames are to be removed: " & sConfirm, vbYesNo, "Confirm removals") = vbYes Then
-            bConfirmed = True
-            GoTo again_confirmed:
-        Else
-            GoTo xt
-        End If
-    End If
+nx: Next nm
+    
+xt: Exit Sub
 
-xt:
+eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
 
 Public Sub ObstAll(ByVal obs_mode As xlSaveRestore, _
@@ -839,6 +959,7 @@ Public Sub ObstNamedRanges(ByVal nr_operation As xlSaveRestore, _
     Dim dcNames     As Dictionary   ' Names which refer to a range in the Worksheet nr_ws
     Dim dcCells     As Dictionary   ' Keeps a record of each cell's formula which had been modified
     Dim nm          As Name
+    Dim nms         As Names
     Dim wsheet      As Worksheet
     Dim cel         As Range
     Dim v           As Variant
@@ -848,41 +969,13 @@ Public Sub ObstNamedRanges(ByVal nr_operation As xlSaveRestore, _
     '~~ Application.Workbooks() may thus not be appropriate. GetOpenWorkbook will find
     '~~ it in whichever Application instance
     Set wb = mWrkbk.GetOpen(nr_ws.Parent.Name)
+    Set nms = wb.Names
     
     Select Case nr_operation
         Case xlSaveAndOff
             '~~ Collect the relevant names
             If dcNames Is Nothing Then Set dcNames = New Dictionary Else dcNames.RemoveAll
-            For Each nm In Application.Names
-'                Debug.Print "Collecting Name '" & nm.Name & "'"
-'                Debug.Print nm.NameLocal
-'                Debug.Print nm.RefersTo
-'                Debug.Print nm.RefersToLocal
-'                Debug.Print nm.RefersToR1C1
-'                Debug.Print nm.RefersToR1C1Local
-'                Debug.Print nm.RefersToRange.Address
-                dcNames.Add nm.Name, nm
-            Next nm
-            For Each nm In wb.Names
-'                Debug.Print "Collecting Name '" & nm.Name & "'"
-'                Debug.Print nm.NameLocal
-'                Debug.Print nm.RefersTo
-'                Debug.Print nm.RefersToLocal
-'                Debug.Print nm.RefersToR1C1
-'                Debug.Print nm.RefersToR1C1Local
-'                Debug.Print nm.RefersToRange.Address
-                On Error Resume Next
-                dcNames.Add nm.Name, nm
-            Next nm
-            For Each nm In nr_ws.Names
-'                Debug.Print "Collection Range Name '" & nm.Name & "'"
-'                Debug.Print nm.NameLocal
-'                Debug.Print nm.RefersTo
-'                Debug.Print nm.RefersToLocal
-'                Debug.Print nm.RefersToR1C1
-'                Debug.Print nm.RefersToR1C1Local
-'                Debug.Print nm.RefersToRange.Address
-                On Error Resume Next
+            For Each nm In nms
                 dcNames.Add nm.Name, nm
             Next nm
             '~~ Collect cells with a formula referencing on of the collected names
@@ -891,7 +984,6 @@ Public Sub ObstNamedRanges(ByVal nr_operation As xlSaveRestore, _
                     With cel
                         For Each v In dcNames
                             If InStr(.Formula, v) <> 0 Then
-'                                Debug.Print cel.Address & " formula uses '" & v & "'"
                                 dcCells.Add cel, .Formula ' At least one name is used
                             End If
                         Next v
@@ -1090,7 +1182,7 @@ Public Sub WsCustomView(ByVal SaveRestore As xlSaveRestore, _
                                 '~~ Activating the CustomView for any other Worksheet will fail
                                 '~~ since they are all protected
                                 ObstProtectedSheets xlSaveAndOff, ws
-                                cv.show
+                                cv.Show
                                 ObstProtectedSheets xlRestore, ws
                                 cv.Delete
                                 dcCvsWs.Remove ws ' CustomView restore done for this Worksheet
