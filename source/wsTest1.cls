@@ -15,4 +15,6 @@ Friend Property Get NamesReference() As Range:  Set NamesReference = Me.Range("c
 Friend Property Get NamesSheet() As Range:      Set NamesSheet = Me.Range("colNamesSheet"):         End Property
 Friend Property Get NamesScope() As Range:      Set NamesScope = Me.Range("colNamesScope"):         End Property
 Public Property Get RngNames() As Range:        Set RngNames = Me.Range("rngNames"):                End Property
-Public Property Get TestColHidden() As Range:   Set TestColHidden = Me.Range("colHiddenForTest"):   End Property
+Public Property Get TestColHidden1() As Range:  Set TestColHidden1 = Me.Range("colHiddenForTest1"): End Property
+Public Property Get AutoFilter1() As Range:     Set AutoFilter1 = Me.Range("rngAutoFilter1"):       End Property
+

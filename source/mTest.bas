@@ -12,6 +12,38 @@ Private Function AppErr(ByVal app_err_no As Long) As Long
     If app_err_no >= 0 Then AppErr = app_err_no + vbObjectError Else AppErr = Abs(app_err_no - vbObjectError)
 End Function
 
+Private Sub BoP(ByVal b_proc As String, _
+           ParamArray b_arguments() As Variant)
+' ------------------------------------------------------------------------------
+' Begin of Procedure stub. Handed over to the corresponding procedures in the
+' Common Component mTrc (Execution Trace) or mErH (Error Handler) provided the
+' components are installed which is indicated by the corresponding Conditional
+' Compile Arguments.
+' ------------------------------------------------------------------------------
+    Dim s As String
+    If UBound(b_arguments) >= 0 Then s = Join(b_arguments, ",")
+#If ErHComp = 1 Then
+    mErH.BoP b_proc, s
+#ElseIf ExecTrace = 1 And TrcComp = 1 Then
+    mTrc.BoP b_proc, s
+#End If
+End Sub
+
+Private Sub EoP(ByVal e_proc As String, _
+       Optional ByVal e_inf As String = vbNullString)
+' ------------------------------------------------------------------------------
+' End of Procedure stub. Handed over to the corresponding procedures in the
+' Common Component mTrc (Execution Trace) or mErH (Error Handler) provided the
+' components are installed which is indicated by the corresponding Conditional
+' Compile Arguments.
+' ------------------------------------------------------------------------------
+#If ErHComp = 1 Then
+    mErH.EoP e_proc
+#ElseIf ExecTrace = 1 And TrcComp = 1 Then
+    mTrc.EoP e_proc, e_inf
+#End If
+End Sub
+
 Private Function ErrMsg(ByVal err_source As String, _
                Optional ByVal err_no As Long = 0, _
                Optional ByVal err_dscrptn As String = vbNullString, _
@@ -62,6 +94,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     Dim ErrText     As String
     Dim ErrTitle    As String
     Dim ErrType     As String
+    Dim ErrAbout    As String
     
     '~~ Obtain error information from the Err object for any argument not provided
     If err_no = 0 Then err_no = Err.Number
@@ -69,6 +102,13 @@ Private Function ErrMsg(ByVal err_source As String, _
     If err_source = vbNullString Then err_source = Err.Source
     If err_dscrptn = vbNullString Then err_dscrptn = Err.Description
     If err_dscrptn = vbNullString Then err_dscrptn = "--- No error description available ---"
+    
+    If InStr(err_dscrptn, "||") <> 0 Then
+        ErrDesc = Split(err_dscrptn, "||")(0)
+        ErrAbout = Split(err_dscrptn, "||")(1)
+    Else
+        ErrDesc = err_dscrptn
+    End If
     
     '~~ Determine the type of error
     Select Case err_no
@@ -90,9 +130,13 @@ Private Function ErrMsg(ByVal err_source As String, _
     ErrTitle = Replace(ErrType & ErrNo & ErrSrc & ErrAtLine, "  ", " ")         ' assemble ErrTitle from available information
        
     ErrText = "Error: " & vbLf & _
-              err_dscrptn & vbLf & vbLf & _
+              ErrDesc & vbLf & vbLf & _
               "Source: " & vbLf & _
               err_source & ErrAtLine
+    If ErrAbout <> vbNullString _
+    Then ErrText = ErrText & vbLf & vbLf & _
+                  "About: " & vbLf & _
+                  ErrAbout
     
 #If Debugging Then
     ErrBttns = vbYesNoCancel
@@ -105,7 +149,7 @@ Private Function ErrMsg(ByVal err_source As String, _
     ErrBttns = vbCritical
 #End If
     
-#If CommErHComp Then
+#If ErHComp Then
     '~~ When the Common VBA Error Handling Component (ErH) is installed/used by in the VB-Project
     ErrMsg = mErH.ErrMsg(err_source:=err_source, err_number:=err_no, err_dscrptn:=err_dscrptn, err_line:=err_line)
     '~~ Translate back the elaborated reply buttons mErrH.ErrMsg displays and returns to the simple yes/No/Cancel
@@ -118,7 +162,7 @@ Private Function ErrMsg(ByVal err_source As String, _
 #Else
     '~~ When the Common VBA Error Handling Component (ErH) is not used/installed there might still be the
     '~~ Common VBA Message Component (Msg) be installed/used
-#If CommMsgComp Then
+#If MsgComp Then
     ErrMsg = mMsg.ErrMsg(err_source:=err_source)
 #Else
     '~~ None of the Common Components is installed/used
@@ -140,8 +184,9 @@ Public Sub Names()
     Dim nm      As Name
     Dim lRow    As Long
     Dim wb      As Workbook
-
-    Set wb = ThisWorkbook
+    Dim ws      As Worksheet
+    
+    Set wb = wsTest1.Parent
     
     With wsTest1
         .RngNames.ClearContents
@@ -174,185 +219,95 @@ Public Sub Names()
     
     End With
     
-xt: EoP ErrSrc(PROC)
-    mObstructions.CleanUp ' check if something to retore remained
+xt: mObstructions.Rewind ' check if something to retore remained
     Exit Sub
     
 eh: If mErH.ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
 
 Private Sub TestSetUp()
-' -----------------------------------------------
+' ------------------------------------------------------------------------------
 ' Setup/prepare all Test-Worksheets.
-' -----------------------------------------------
+' Important: Sheet protection prevents that AutoFilter is turned off in another
+'            sheet while it is turned on in one sheet
+' ------------------------------------------------------------------------------
+    
+    wsTest1.Protect
+    wsTest2.Protect
+    wsTest3.Protect
     
     With wsTest1
         .Unprotect
-        If .AutoFilterMode = False Then .Range("rngAutoFilter1").AutoFilter
-        .TestColHidden.EntireColumn.Hidden = True
+        .TestColHidden1.EntireColumn.Hidden = True
+        If .AutoFilterMode = False Then .AutoFilter1.AutoFilter
         .Protect
     End With
     With wsTest2
         .Unprotect
-        If .AutoFilterMode = True Then .AutoFilterMode = False
+        If .AutoFilterMode = False Then .AutoFilter2.AutoFilter Field:=1 _
+                                                              , Criteria1:="<>*Filtered*" _
+                                                              , Operator:=xlAnd
+        .TestColHidden2.EntireColumn.Hidden = True
+        .Protect
     End With
     With wsTest3
         .Unprotect
-        If .AutoFilterMode = False Then .Range("rngAutoFilter3").AutoFilter
+        If .AutoFilterMode = False Then .AutoFilter3.AutoFilter
         .Protect
     End With
+    
+    wsTest2.Unprotect
     Application.EnableEvents = True
-
+    
 End Sub
 
-Public Sub Test_All()
-' --------------------------
-' Unatended regression test.
-' All results asserted
-' --------------------------
-    Const PROC  As String = "Test_All"
-    
-    On Error GoTo eh
-    BoP ErrSrc(PROC)
-    
-    '~~  Test sheets setup with assertion of the required initial status
-    TestSetUp
-    Debug.Assert mObstructions.WsColsHidden(wsTest1) = True
-    Debug.Assert wsTest1.AutoFilterMode = True
-    Debug.Assert wsTest1.ProtectContents = True
-    Debug.Assert wsTest2.AutoFilterMode = False
-    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest3.AutoFilterMode = True
-    Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.CleanUp ' Let's see if something's still remaining. Investigation due in case!
-    
-    Test_ObstApplicationEvents
-    Test_CellsMerging
-    Test_ColHiding
-    Test_Obstructions1
-    Test_Obstructions2
-    Test_ObstNamedRanges
-    Test_RowsFiltering
-    Test_ObstProtectedSheets
-    Test_WsCustomView
-    
-xt: EoP ErrSrc(PROC)
-    Debug.Assert mObstructions.WsColsHidden(wsTest1) = True
-    Debug.Assert wsTest1.AutoFilterMode = True
-    Debug.Assert wsTest1.ProtectContents = True
-    Debug.Assert wsTest2.AutoFilterMode = False
-    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest3.AutoFilterMode = True
-    Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.CleanUp ' Let's see if something's still remaining. Investigation due in case!
-        
-eh: If mErH.ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
-End Sub
-
-Public Sub Test_CellsMerging()
-    Const PROC = "Test_CellsMerging"
-
-    On Error GoTo eh
-    BoP ErrSrc(PROC)
-
-    ' still to be done !
-
-xt: EoP ErrSrc(PROC)
-    mObstructions.CleanUp ' check if something to retore remained
-    Exit Sub
-    
-eh: If mErH.ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
-End Sub
-
-Public Sub Test_ColHiding()
-    Const PROC = "Test_ColHiding"
-
-    On Error GoTo eh
-    BoP ErrSrc(PROC)
-    
-    mObstructions.CleanUp bForce:=True ' Enforce remaining obstruction restores (without confirmation)
-    TestSetUp
-    
-    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest1
-    mObstructions.ObstHiddenColumns xlSaveAndOff, wsTest1
-    Debug.Assert wsTest1.TestColHidden.EntireColumn.Hidden = False
-        '~~ Subsequent (nested) save/restore request (must not change the status)!
-        mObstructions.ObstHiddenColumns xlSaveAndOff, wsTest1
-        Debug.Assert wsTest1.TestColHidden.EntireColumn.Hidden = False
-        mObstructions.ObstHiddenColumns xlRestore, wsTest1
-        Debug.Assert wsTest1.TestColHidden.EntireColumn.Hidden = False
-    mObstructions.ObstHiddenColumns xlRestore, wsTest1
-    mObstructions.ObstProtectedSheets xlRestore, wsTest1 ' unprotected with hidden cols save and off but not restored ?
-    Debug.Assert wsTest1.TestColHidden.EntireColumn.Hidden = True
-    
-xt: EoP ErrSrc(PROC)
-    mObstructions.CleanUp ' check if something to retore remained
-    Exit Sub
-    
-eh: If mErH.ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
-End Sub
-
-Public Sub Test_ObstApplicationEvents()
+Public Sub Test_01_ApplEvents()
 ' ------------------------------------------------------
 ' The test procedure will halt at any assertion not met.
 ' ------------------------------------------------------
-    Const PROC = "Test_ObstApplicationEvents"
+    Const PROC = "Test_01_ApplEvents"
 
     On Error GoTo eh
+    Dim ws  As Worksheet
+    
     BoP ErrSrc(PROC)
+    Set ws = wsTest1
     
     Application.EnableEvents = True
-    mObstructions.ObstApplicationEvents xlSaveAndOff
+    mObstructions.ApplEvents enEliminate
     Debug.Assert Application.EnableEvents = False
-    
-    '~~ Any subsequent SaveAndOff and CleanUp (usually in nested sub procedures) must not change the status
-    mObstructions.ObstApplicationEvents xlSaveAndOff
-    mObstructions.ObstApplicationEvents xlRestore
-    Debug.Assert Application.EnableEvents = False
-    mObstructions.ObstApplicationEvents xlSaveAndOff
-    mObstructions.ObstApplicationEvents xlRestore
-    Debug.Assert Application.EnableEvents = False
-    
-    '~~ The final CleanUp restores the initially saved status
-    mObstructions.ObstApplicationEvents xlRestore
+    mObstructions.ApplEvents enRestore
     Debug.Assert Application.EnableEvents = True
     
-xt: EoP ErrSrc(PROC)
-    mObstructions.CleanUp ' check if something to retore remained
+    '~~ Any subsequent SaveAndOff and CleanUp (usually in nested sub procedures) must not change the status
+    Debug.Assert Application.EnableEvents = True
+    
+    mObstructions.ApplEvents enEliminate
+    Debug.Assert Application.EnableEvents = False
+    mObstructions.ApplEvents enEliminate
+    mObstructions.ApplEvents enEliminate
+    mObstructions.ApplEvents enEliminate
+    mObstructions.ApplEvents enRestore
+    Debug.Assert Application.EnableEvents = False
+    mObstructions.ApplEvents enRestore
+    Debug.Assert Application.EnableEvents = False
+    mObstructions.ApplEvents enRestore
+    Debug.Assert Application.EnableEvents = False
+    mObstructions.ApplEvents enRestore
+    
+    Debug.Assert Application.EnableEvents = True
+        
+xt: mObstructions.Rewind   ' check if something to retore remained
+    EoP ErrSrc(PROC)
     Exit Sub
     
-eh: If mErH.ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
 End Sub
 
-Public Sub Test_ObstNamedRanges()
-' ------------------------------------------------------------------
-' Range names imply a serious problem when a worksheet (wsSource)
-' is about to be copied into another Workbook (wbTarget) since all
-' names would refer back to the source Workbook (wbSource). To
-' avoid this formulas using relevant range names are temporarily
-' turned into comments and restored after the Worksheet had been
-' copied.
-' ------------------------------------------------------------------
-    Const PROC = "Test_ObstNamedRanges"
-    
-    On Error GoTo eh
-    mObstructions.CleanUp
-
-    BoP ErrSrc(PROC)
-
-    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest3
-        mObstructions.ObstNamedRanges xlSaveAndOff, wsTest3
-        mObstructions.ObstNamedRanges xlRestore, wsTest3
-    mObstructions.ObstProtectedSheets xlRestore, wsTest3
-    
-xt: EoP ErrSrc(PROC)
-    mObstructions.CleanUp ' check if something to retore remained
-    Exit Sub
-    
-eh: If mErH.ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
-End Sub
-
-Public Sub Test_ObstProtectedSheets()
+Public Sub Test_02_SheetProtection()
 ' ------------------------------------------------------------
 ' Whichever number of sheets, protected or not is unprotected,
 ' when finally their protection status is restored it is like
@@ -360,7 +315,7 @@ Public Sub Test_ObstProtectedSheets()
 ' Assertions proof the correctness of this obstruction
 ' implementation.
 ' ------------------------------------------------------------
-    Const PROC = "Test_ObstProtectedSheets"
+    Const PROC = "Test_02_SheetProtection"
         
     On Error GoTo eh
     
@@ -368,203 +323,297 @@ Public Sub Test_ObstProtectedSheets()
     Debug.Assert wsTest1.ProtectContents = True
     Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest3.ProtectContents = True
+    
     BoP ErrSrc(PROC)
     
-    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest1
-    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest2
-    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest3
+    mObstructions.SheetProtection sp_service:=enEliminate, sp_ws:=wsTest1
+    mObstructions.SheetProtection sp_service:=enEliminate, sp_ws:=wsTest2
+    mObstructions.SheetProtection sp_service:=enEliminate, sp_ws:=wsTest3
+    '~~ Subsequent protection status save operations
+    mObstructions.SheetProtection sp_service:=enEliminate, sp_ws:=wsTest3
+    mObstructions.SheetProtection sp_service:=enEliminate, sp_ws:=wsTest1
+    mObstructions.SheetProtection sp_service:=enEliminate, sp_ws:=wsTest2
+    mObstructions.SheetProtection sp_service:=enEliminate, sp_ws:=wsTest2
+    mObstructions.SheetProtection sp_service:=enEliminate, sp_ws:=wsTest3
+    mObstructions.SheetProtection sp_service:=enEliminate, sp_ws:=wsTest1
     
-    '~~ Any subsequent xlSaveAndOff and xlRestore (usually in nested sub-procedures)
-    '~~ must not have any effect on the final result
-    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest1
-    mObstructions.ObstProtectedSheets xlRestore, wsTest1
-    
-    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest1
-    mObstructions.ObstProtectedSheets xlRestore, wsTest1
-    
-    '~~ Assert all sheets are unprotectec
+    mObstructions.SheetProtection sp_service:=enRestore, sp_ws:=wsTest2
+    mObstructions.SheetProtection sp_service:=enRestore, sp_ws:=wsTest3
+    mObstructions.SheetProtection sp_service:=enRestore, sp_ws:=wsTest1
     Debug.Assert wsTest1.ProtectContents = False
     Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest3.ProtectContents = False
     
-    mObstructions.ObstProtectedSheets xlRestore, wsTest1
-    mObstructions.ObstProtectedSheets xlRestore, wsTest2
-    mObstructions.ObstProtectedSheets xlRestore, wsTest3
+    mObstructions.SheetProtection sp_service:=enRestore, sp_ws:=wsTest2
+    mObstructions.SheetProtection sp_service:=enRestore, sp_ws:=wsTest3
+    mObstructions.SheetProtection sp_service:=enRestore, sp_ws:=wsTest1
+    Debug.Assert wsTest1.ProtectContents = False
+    Debug.Assert wsTest2.ProtectContents = False
+    Debug.Assert wsTest3.ProtectContents = False
     
-    '~~ Assert only those initially protected are protected again
+    '~~ Only the final paired protection status 'Restore' operation restores the initial status
+    mObstructions.SheetProtection sp_service:=enRestore, sp_ws:=wsTest2
+    mObstructions.SheetProtection sp_service:=enRestore, sp_ws:=wsTest3
+    mObstructions.SheetProtection sp_service:=enRestore, sp_ws:=wsTest1
     Debug.Assert wsTest1.ProtectContents = True
     Debug.Assert wsTest2.ProtectContents = False
     Debug.Assert wsTest3.ProtectContents = True
-
-xt: EoP ErrSrc(PROC)
-    mObstructions.CleanUp ' check if something to retore remained
+    
+xt: '~~ Must not display any yet undone cleanup message
+    mObstructions.Rewind
+    EoP ErrSrc(PROC)
     Exit Sub
     
-eh: If mErH.ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case mErH.ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
 End Sub
 
-Public Sub Test_Obstructions1()
-    Const PROC = "Test_Obstructions1"
-
-    On Error GoTo eh
-    BoP ErrSrc(PROC)
-    
-    '~~ 1. Test local approach
-    mObstructions.Obstructions xlSaveAndOff, ActiveSheet
-    ' any "elementary" operation e.g. rows copy
-    mObstructions.Obstructions xlRestore, ActiveSheet
-
-xt: EoP ErrSrc(PROC)
-    mObstructions.CleanUp ' check if something to retore remained
-    Exit Sub
-    
-eh: If mErH.ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
-End Sub
-
-Public Sub Test_Obstructions2()
-    Const PROC = "Test_Obstructions2"
-
-    On Error GoTo eh
-    Dim cv  As CustomView
-    Dim dct As Dictionary
-    
-    BoP ErrSrc(PROC)
-    mObstructions.ObstAll obs_mode:=xlSaveAndOff, obs_ws:=wsTest1
-    mObstructions.ObstAll obs_mode:=xlSaveAndOff, obs_ws:=wsTest1
-    mObstructions.ObstAll obs_mode:=xlRestore, obs_ws:=wsTest1
-    mObstructions.ObstAll obs_mode:=xlSaveAndOff, obs_ws:=wsTest1
-    mObstructions.ObstAll obs_mode:=xlRestore, obs_ws:=wsTest1
-    mObstructions.ObstAll obs_mode:=xlSaveAndOff, obs_ws:=wsTest1
-    mObstructions.ObstAll obs_mode:=xlRestore, obs_ws:=wsTest1
-    mObstructions.ObstAll obs_mode:=xlRestore, obs_ws:=wsTest1
-    
-xt: EoP ErrSrc(PROC)
-    mObstructions.CleanUp ' check if something to retore remained
-    Exit Sub
-    
-eh: If mErH.ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
-End Sub
-
-Public Sub Test_RowsFiltering()
+Public Sub Test_03_FilteredRowsHiddenCols()
 ' --------------------------------------------------------------------
 ' Assertions proof the correctness of this obstruction implementation.
 ' Obstructions SaveAndOff and CleanUp allways have to be pairs.
 ' Unpaired Save/CleanUp will lead to incorrect results!!!!
+'
+' Important: Filtering can only set off/on sheet wise when all not
+'            concerned sheets are protected while AutoFilterMode of
+'            one changes.
 ' --------------------------------------------------------------------
-Const PROC = "Test_RowsFiltering"
-Dim cv      As CustomView
-
-    '~~  Setup test sheets and assert the required initial test status
-    mObstructions.CleanUp True
-    TestSetUp
-    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
-    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
+    Const PROC = "Test_03_FilteredRowsHiddenCols"
     
     On Error GoTo eh
+
+    '~~  Setup test sheets and assert the required initial status
+    TestSetUp
+    With wsTest1
+        Debug.Assert .AutoFilterMode = True
+        Debug.Assert .ProtectContents = True
+        Debug.Assert .TestColHidden1.EntireColumn.Hidden = True
+    End With
+    With wsTest2
+        Debug.Assert .AutoFilterMode = True
+        Debug.Assert .ProtectContents = False
+        Debug.Assert .TestColHidden2.EntireColumn.Hidden = True
+    End With
+    With wsTest3
+        Debug.Assert .AutoFilterMode = True
+        Debug.Assert .ProtectContents = True
+        Debug.Assert wsTest3.ProtectContents = True
+    End With
+    
     BoP ErrSrc(PROC)
     
     '~~ Note! Obstructions are saved-and-turned and restored Worksheetwise
     wsTest1.Activate
-    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
-    mObstructions.ObstFilteredRows xlSaveAndOff, wsTest1
-    Debug.Assert wsTest1.AutoFilterMode = False:    Debug.Assert wsTest1.ProtectContents = True
-    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.ObstFilteredRows xlRestore, wsTest1
-    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
-    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
+    Application.ScreenUpdating = False
+    mObstructions.FilteredRowsHiddenCols frhc_service:=enEliminate, frhc_ws:=wsTest1
+    Application.ScreenUpdating = True
+    
+    Debug.Assert wsTest1.AutoFilterMode = False:    Debug.Assert wsTest1.TestColHidden1.EntireColumn.Hidden = False
+    Debug.Assert wsTest2.AutoFilterMode = True:     Debug.Assert wsTest2.TestColHidden2.EntireColumn.Hidden = True
+    Debug.Assert wsTest3.AutoFilterMode = True
+
+    Application.ScreenUpdating = False
+    mObstructions.FilteredRowsHiddenCols frhc_service:=enRestore, frhc_ws:=wsTest1
+    Application.ScreenUpdating = True
+
+    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.TestColHidden1.EntireColumn.Hidden = True
+    Debug.Assert wsTest2.AutoFilterMode = True:     Debug.Assert wsTest2.TestColHidden2.EntireColumn.Hidden = True
+    Debug.Assert wsTest3.AutoFilterMode = True
     
     wsTest2.Activate
-    mObstructions.ObstFilteredRows xlSaveAndOff, wsTest2
-    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
-    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.ObstFilteredRows xlRestore, wsTest2
-    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
-    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
+    
+    mObstructions.FilteredRowsHiddenCols frhc_service:=enEliminate, frhc_ws:=wsTest2
+    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.TestColHidden1.EntireColumn.Hidden = True
+    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.TestColHidden2.EntireColumn.Hidden = False
+    Debug.Assert wsTest3.AutoFilterMode = True
+    
+    mObstructions.FilteredRowsHiddenCols frhc_service:=enRestore, frhc_ws:=wsTest2
+    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.TestColHidden1.EntireColumn.Hidden = True
+    Debug.Assert wsTest2.AutoFilterMode = True:     Debug.Assert wsTest2.TestColHidden2.EntireColumn.Hidden = True
+    Debug.Assert wsTest3.AutoFilterMode = True
     
     wsTest3.Activate
-    Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.ObstFilteredRows xlSaveAndOff, wsTest3
-    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
-    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest3.AutoFilterMode = False:    Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.ObstFilteredRows xlRestore, wsTest3
-    Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
-    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
-        
-    '~~ Note! Obstructions are handled Worksheet by Worksheet
-    mObstructions.ObstFilteredRows xlSaveAndOff, wsTest1
-    Debug.Assert wsTest1.AutoFilterMode = False:    Debug.Assert wsTest1.ProtectContents = True
-    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.ObstFilteredRows xlSaveAndOff, wsTest2
-    Debug.Assert wsTest1.AutoFilterMode = False:    Debug.Assert wsTest1.ProtectContents = True
-    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.ObstFilteredRows xlSaveAndOff, wsTest3
-    Debug.Assert wsTest1.AutoFilterMode = False:    Debug.Assert wsTest1.ProtectContents = True
-    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest3.AutoFilterMode = False:    Debug.Assert wsTest3.ProtectContents = True
     
-    mObstructions.ObstFilteredRows xlRestore, wsTest1
-    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.AutoFilterMode = True
-    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest3.AutoFilterMode = False:    Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.ObstFilteredRows xlRestore, wsTest2
-    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
-    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest3.AutoFilterMode = False:    Debug.Assert wsTest3.ProtectContents = True
-    mObstructions.ObstFilteredRows xlRestore, wsTest3
-    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.ProtectContents = True
-    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest3.AutoFilterMode = True:     Debug.Assert wsTest3.ProtectContents = True
+    mObstructions.FilteredRowsHiddenCols frhc_service:=enEliminate, frhc_ws:=wsTest3
+    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.TestColHidden1.EntireColumn.Hidden = True
+    Debug.Assert wsTest2.AutoFilterMode = True:     Debug.Assert wsTest2.TestColHidden2.EntireColumn.Hidden = True
+    Debug.Assert wsTest3.AutoFilterMode = False
+    
+    mObstructions.FilteredRowsHiddenCols frhc_service:=enRestore, frhc_ws:=wsTest3
+    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.TestColHidden1.EntireColumn.Hidden = True
+    Debug.Assert wsTest2.AutoFilterMode = True:     Debug.Assert wsTest2.TestColHidden2.EntireColumn.Hidden = True
+    Debug.Assert wsTest3.AutoFilterMode = True
         
-xt: EoP ErrSrc(PROC)
-    mObstructions.CleanUp ' check if something to retore remained
+    '~~ Note! Obstructions are handled Worksheet by Worksheet and have to be restored in reverse order
+    '~~       When not performed in reverse order an error is thrown and the service Rewind will do it
+    mObstructions.FilteredRowsHiddenCols frhc_service:=enEliminate, frhc_ws:=wsTest1
+    mObstructions.FilteredRowsHiddenCols frhc_service:=enEliminate, frhc_ws:=wsTest2
+    mObstructions.FilteredRowsHiddenCols frhc_service:=enEliminate, frhc_ws:=wsTest3
+    Debug.Assert wsTest1.AutoFilterMode = False:    Debug.Assert wsTest1.TestColHidden1.EntireColumn.Hidden = False
+    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.TestColHidden2.EntireColumn.Hidden = False
+    Debug.Assert wsTest3.AutoFilterMode = False
+    mObstructions.FilteredRowsHiddenCols frhc_service:=enRestore, frhc_ws:=wsTest3
+    mObstructions.FilteredRowsHiddenCols frhc_service:=enRestore, frhc_ws:=wsTest2
+    mObstructions.FilteredRowsHiddenCols frhc_service:=enRestore, frhc_ws:=wsTest1
+    Debug.Assert wsTest1.AutoFilterMode = True:     Debug.Assert wsTest1.TestColHidden1.EntireColumn.Hidden = True
+    Debug.Assert wsTest2.AutoFilterMode = True:     Debug.Assert wsTest2.TestColHidden2.EntireColumn.Hidden = True
+    Debug.Assert wsTest3.AutoFilterMode = True
+        
+    mObstructions.FilteredRowsHiddenCols frhc_service:=enEliminate, frhc_ws:=wsTest1
+    mObstructions.FilteredRowsHiddenCols frhc_service:=enEliminate, frhc_ws:=wsTest2
+    mObstructions.FilteredRowsHiddenCols frhc_service:=enEliminate, frhc_ws:=wsTest3
+    Debug.Assert wsTest1.AutoFilterMode = False:    Debug.Assert wsTest1.TestColHidden1.EntireColumn.Hidden = False
+    Debug.Assert wsTest2.AutoFilterMode = False:    Debug.Assert wsTest2.TestColHidden2.EntireColumn.Hidden = False
+    Debug.Assert wsTest3.AutoFilterMode = False
+    
+    mObstructions.Rewind
+    Debug.Assert wsTest1.AutoFilterMode = True:    Debug.Assert wsTest1.TestColHidden1.EntireColumn.Hidden = True
+    Debug.Assert wsTest2.AutoFilterMode = True:    Debug.Assert wsTest2.TestColHidden2.EntireColumn.Hidden = True
+    Debug.Assert wsTest3.AutoFilterMode = True
+
+xt: mObstructions.Rewind   ' check if something to retore remained
+    EoP ErrSrc(PROC)
     Exit Sub
     
-eh: If mErH.ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  Stop: GoTo xt
+    End Select
 End Sub
 
-Public Sub Test_WsCustomView()
-Const PROC  As String = "Test_WsCustomView"
-    
-    '~~  Setup test sheets and assert the required initial status
-    TestSetUp
-    Debug.Assert wsTest1.ProtectContents = True
-    Debug.Assert wsTest1.AutoFilterMode = True
-    Debug.Assert wsTest2.ProtectContents = False
-    Debug.Assert wsTest2.AutoFilterMode = False
-    Debug.Assert wsTest3.ProtectContents = True
-    Debug.Assert wsTest3.AutoFilterMode = True
-    Debug.Assert Application.EnableEvents = True
-    mObstructions.CleanUp
-    
+Public Sub Test_04_MergedAreas()
+    Const PROC = "Test_04_MergedAreas"
+
     On Error GoTo eh
+    Dim wb  As Workbook
+    Dim ws  As Worksheet
+    Dim r   As Range
+    
     BoP ErrSrc(PROC)
+    Set r = wsTest2.MergedCellsSelect
+    Set ws = r.Worksheet
+    Set wb = ws.Parent
+    Test_04_MergedAreas_Setup
+    ws.Protect
     
-    mObstructions.ObstProtectedSheets xlSaveAndOff, wsTest1
-    mObstructions.WsCustomView xlSaveOnly, wsTest1, bRowsFiltered:=wsTest1.AutoFilterMode
-    wsTest1.AutoFilterMode = False
-        mObstructions.WsCustomView xlSaveOnly, wsTest1, bRowsFiltered:=wsTest1.AutoFilterMode
-        wsTest1.AutoFilterMode = False
-        Debug.Assert wsTest1.AutoFilterMode = False
-        mObstructions.WsCustomView xlRestore, wsTest1
-        Debug.Assert wsTest1.AutoFilterMode = False
-    mObstructions.WsCustomView xlRestore, wsTest1
+    ws.Activate
+    Debug.Assert wsTest2.MergedCells1.MergeCells = True
+    Debug.Assert wsTest2.MergedCells2.MergeCells = True
+    Debug.Assert wsTest2.MergedCells3.MergeCells = True
+    mObstructions.MergedAreas mc_service:=enEliminate, mc_range:=r
     
-    Debug.Assert wsTest1.AutoFilterMode = True
-    mObstructions.ObstProtectedSheets xlRestore, wsTest1
+    Debug.Assert wsTest2.MergedCells1.MergeCells = False
+    Debug.Assert wsTest2.MergedCells2.MergeCells = False
+    Debug.Assert wsTest2.MergedCells3.MergeCells = True ' col dependant not implemented
     
-xt: EoP ErrSrc(PROC)
-    mObstructions.CleanUp ' check if something to retore remained
+    mObstructions.MergedAreas mc_service:=enRestore, mc_range:=r
+    Debug.Assert wsTest2.MergedCells1.MergeCells = True
+    Debug.Assert wsTest2.MergedCells2.MergeCells = True
+    Debug.Assert wsTest2.MergedCells3.MergeCells = True
+
+xt: mObstructions.Rewind   ' check if something to retore remained
+    mErH.EoP ErrSrc(PROC)
     Exit Sub
     
-eh: If mErH.ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
+End Sub
+
+Private Sub Test_04_MergedAreas_Setup()
+    Const PROC = "Test_04_MergedAreas_Setup"
+    
+    On Error GoTo eh
+    Application.DisplayAlerts = False
+    SheetProtection sp_service:=enEliminate, sp_ws:=wsTest2
+    
+    If wsTest2.UnMerged1.MergeCells = False Then
+        wsTest2.UnMerged1.Merge
+        With wsTest2.MergedCells1
+            .HorizontalAlignment = xlCenter
+            .VerticalAlignment = xlCenter
+            .WrapText = True
+            .Orientation = 0
+            .AddIndent = False
+            .IndentLevel = 0
+            .ShrinkToFit = False
+            .ReadingOrder = xlContext
+        End With
+    End If
+    
+    If wsTest2.UnMerged2.MergeCells = False Then
+        wsTest2.UnMerged2.Merge
+        With wsTest2.MergedCells2
+            .HorizontalAlignment = xlCenter
+            .VerticalAlignment = xlCenter
+            .WrapText = True
+            .Orientation = 0
+            .AddIndent = False
+            .IndentLevel = 0
+            .ShrinkToFit = False
+            .ReadingOrder = xlContext
+        End With
+    End If
+    
+    If wsTest2.UnMerged3.MergeCells = False Then
+        wsTest2.UnMerged3.Merge
+        With wsTest2.MergedCells3
+            .HorizontalAlignment = xlCenter
+            .VerticalAlignment = xlCenter
+            .WrapText = True
+            .Orientation = 0
+            .AddIndent = False
+            .IndentLevel = 0
+            .ShrinkToFit = False
+            .ReadingOrder = xlContext
+        End With
+    End If
+
+xt: Application.DisplayAlerts = True
+    SheetProtection sp_service:=enRestore, sp_ws:=wsTest2
+    Exit Sub
+
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
+End Sub
+
+Public Sub Test_99_All()
+' --------------------------
+' Unatended regression test.
+' All results asserted
+' --------------------------
+    Const PROC  As String = "Test_99_All"
+    
+    On Error GoTo eh
+    
+    BoP ErrSrc(PROC)
+    '~~  Test sheets setup with assertion of the required initial status
+    
+    Test_01_ApplEvents
+    Test_02_SheetProtection         ' Basic obstruction also used by other obstructions
+    Test_03_FilteredRowsHiddenCols
+    Test_04_MergedAreas
+    
+xt: mObstructions.Rewind   ' Should not do anything
+    EoP ErrSrc(PROC)
+    Exit Sub
+    
+eh: Select Case ErrMsg(ErrSrc(PROC))
+        Case vbYes: Stop: Resume
+        Case Else:  GoTo xt
+    End Select
+End Sub
+
+Private Sub Test_BoP_EoP()
+    Const PROC = "Test_BoP_EoP"
+    
+    BoP ErrSrc(PROC)
+    EoP ErrSrc(PROC)
+    
 End Sub
 
