@@ -687,7 +687,13 @@ Private Sub FilteredRowsHiddenCols2Restore(ByVal frhc_ws As Worksheet, _
             '~~ It is absolutely essential that there are no protected sheets in the Workbook
             '~~ when the CustomView is re-shown
             SheetProtection sp_service:=enEliminate, sp_wb:=wb
+#If Debugging = 1 Then ' The mBasic component is only available (and used) in the development and test environment
+            mBasic.TimedDoEvents "> wb.CustomViews(TempCustViewName).Show"
+#End If
             wb.CustomViews(TempCustViewName).Show
+#If Debugging = 1 Then ' The mBasic component is only available (and used) in the development and test environment
+            mBasic.TimedDoEvents "< wb.CustomViews(TempCustViewName).Show"
+#End If
             wb.CustomViews(TempCustViewName).Delete
             SheetProtection sp_service:=enRestore, sp_wb:=wb
         End If
@@ -1012,7 +1018,7 @@ Public Sub Rewind()
     Dim v                   As Variant
     Dim stack               As Collection
     Dim i                   As Long
-    Dim Msg                 As New Collection
+    Dim msg                 As New Collection
     
     '~~ Restore Filtered Rows and/or Hidden Columns for all Worksheets in revers order !!
     If Not FilteredRowsHiddenColsSheetStacks Is Nothing Then
@@ -1021,7 +1027,7 @@ Public Sub Rewind()
             Set stack = SheetStack(FilteredRowsHiddenColsSheetStacks, ws)
             While Not BasicStackIsEmpty(stack)
                 FilteredRowsHiddenCols2Restore frhc_ws:=ws, frhc_stack:=stack
-                Msg.Add "FilteredRowsHiddenCols sheet '" & ws.Name & "' restored!"
+'                msg.Add "FilteredRowsHiddenCols sheet '" & ws.Name & "' restored!"
                 SheetStack(FilteredRowsHiddenColsSheetStacks, ws) = stack
                 Set stack = SheetStack(FilteredRowsHiddenColsSheetStacks, ws)
             Wend
@@ -1035,7 +1041,7 @@ Public Sub Rewind()
             Set stack = SheetProtectionSheetStacks(ws)
             While Not BasicStackIsEmpty(stack)
                 SheetProtection sp_service:=enRestore, sp_ws:=ws
-                Msg.Add "Protection sheet '" & ws.Name & "' retored!"
+'                msg.Add "Protection sheet '" & ws.Name & "' retored!"
             Wend
         Next i
     End If
@@ -1044,7 +1050,7 @@ Public Sub Rewind()
     If Not ApplEventsStack Is Nothing Then
         While Not BasicStackIsEmpty(ApplEventsStack)
             Application.EnableEvents = BasicStackPop(ApplEventsStack)
-            Msg.Add "ApplicationEvents retored!"
+'            msg.Add "ApplicationEvents retored!"
         Wend
     End If
     
@@ -1057,7 +1063,7 @@ Public Sub Rewind()
             Set stack = SheetStack(MergedAreasSheetStacks, ws)
             While Not BasicStackIsEmpty(stack)
                 MergedAreas2Restore BasicStackPop(stack) ' popped is a Dictionary of merge area range names
-                Msg.Add "Merged Area(s) sheet '" & ws.Name & "' retored!"
+'                msg.Add "Merged Area(s) sheet '" & ws.Name & "' retored!"
                 SheetStack(MergedAreasSheetStacks, ws) = stack
                 Set stack = SheetStack(MergedAreasSheetStacks, ws)
             Wend
@@ -1066,7 +1072,7 @@ Public Sub Rewind()
         Next i
     End If
     
-xt: If Msg.Count > 0 Then For Each v In Msg:  Debug.Print v:  Next v
+xt: If msg.Count > 0 Then For Each v In msg:  Debug.Print v:  Next v
     Exit Sub
 
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume

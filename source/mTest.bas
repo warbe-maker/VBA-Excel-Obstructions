@@ -583,10 +583,9 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
 End Sub
 
 Public Sub Test_99_All()
-' --------------------------
-' Unatended regression test.
-' All results asserted
-' --------------------------
+' --------------------------------------------------------------------
+' Self asserting, unatended regression test.
+' --------------------------------------------------------------------
     Const PROC  As String = "Test_99_All"
     
     On Error GoTo eh
@@ -594,11 +593,31 @@ Public Sub Test_99_All()
     BoP ErrSrc(PROC)
     '~~  Test sheets setup with assertion of the required initial status
     
+#If Debugging = 1 Then ' The mBasic component is only available (and used) in the development and test environment
+    mBasic.TimedDoEvents "> " & ErrSrc(PROC)
+#End If
+
     Test_01_ApplEvents
+#If Debugging = 1 Then ' The mBasic component is only available (and used) in the development and test environment
+    mBasic.TimedDoEvents "Test_01_ApplEvents"
+#End If
+
     Test_02_SheetProtection         ' Basic obstruction also used by other obstructions
+#If Debugging = 1 Then ' The mBasic component is only available (and used) in the development and test environment
+    mBasic.TimedDoEvents "Test_02_SheetProtection"
+#End If
+
     Test_03_FilteredRowsHiddenCols
+#If Debugging = 1 Then ' The mBasic component is only available (and used) in the development and test environment
+    mBasic.TimedDoEvents "Test_03_FilteredRowsHiddenCols"
+#End If
+
     Test_04_MergedAreas
-    
+#If Debugging = 1 Then ' The mBasic component is only available (and used) in the development and test environment
+    mBasic.TimedDoEvents "Test_04_MergedAreas"
+    mBasic.TimedDoEvents "< " & ErrSrc(PROC)
+#End If
+
 xt: mObstructions.Rewind   ' Should not do anything
     EoP ErrSrc(PROC)
     Exit Sub
