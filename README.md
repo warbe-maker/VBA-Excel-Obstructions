@@ -1,8 +1,8 @@
 # Excel VBA Obstructions Services
-Eliminate and Restore hurdles like _Protected Sheets_, _Filtered Rows_, _Hidden Columns_, _Merged Cells_, and _Application Events_.
+Provides the means to temporarily _Eliminate_ and finally _Restore_ hurdles like _Protected Sheets_, _Filtered Rows_, _Hidden Columns_, _Merged Cells_, and _Application Events_ within any procedure.
 
 ## The approach
-The _Eliminate_ service pushes the information of an obstructions on a Worksheet specific stack from where the _Restore_ service pops it. This ensures the restoration of exactly that status which had been eliminated - provided these two services are performed strictly paired. The stacking approach allows _Eliminate_/_Restore_ services being performed at any nested level without worrying about the status.
+The _Eliminate_ service pushes the information of an obstructions on a Worksheet specific stack from where the _Restore_ service pops it. This ensures the restoration of exactly that status which had been eliminated - provided these two services are performed strictly paired. The stacking approach allows _Eliminate_/_Restore_ services being performed in any number  at any nested level without worrying about the status **provided the two services are performed strictly paired**.
 
 ## Obstructions serviced
 ### Application Events
@@ -24,7 +24,7 @@ Download and import [_mObstructions_][1] or have a look at the complete [develop
 
 ## Usage
 ### The _All_ service
-For a 'brute force' approach _mObstructions.All_ performs all the other services allowing to skip one or another.
+For a 'brute force' approach _mObstructions.All_ performs all the other services allowing to skip one or another. _All_ is an 'all but ...' service because any obstruction may be ignored.  
 
 The _All_ service is used as follows
 ```vb
@@ -40,7 +40,9 @@ The _All_ service has the following named arguments:
 | obs_service          | Enumerated expression enEliminate or enRestore |
 | obs_ws               | Expression identifying a Worksheet object |
 | obs_range            | Range expression pointing to the current selected cells of those cells which should be considered for an un-merge |
+| obs_.....            | Boolean expression, optional, default to True. When set to False the corresponding obstruction is ignored. |
 
+All the other public obstruction services may also be performed individually as an alternative to the 'all but ...' approach.
 
 
 [1]:https://gitcdn.link/repo/warbe-maker/Common-Excel-VBA-Obstructions-Services/master/source/mObstructions.bas
