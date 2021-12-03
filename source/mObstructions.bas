@@ -14,7 +14,7 @@ Option Explicit
 '
 ' Public services:
 ' ------------------------------------------------------------------------------
-' - Obstructions           Summarizes all available services allowing to
+' - All                    Summarizes all available services allowing to
 '                          explicitely ignore some.
 ' - ApplEvents             'Eliminate' the current Application.
 '                          EnableEvents status and restore it to the saved
@@ -63,7 +63,6 @@ Private Const TEMP_CUSTOM_VIEW_NAME As String = "TempObstructionCustomViewName"
 
 Public Enum enObstService
     enEliminate
-    enSave
     enRestore
 End Enum
 
@@ -119,15 +118,13 @@ Private Function AppErr(ByVal err_no As Long) As Long
     If err_no >= 0 Then AppErr = err_no + vbObjectError Else AppErr = Abs(err_no - vbObjectError)
 End Function
 
-Public Sub ApplEvents(ByVal ae_service As enObstService)
+Public Sub ApplEvents(ByVal obs_mode As enObstService)
 ' ------------------------------------------------------------------------------
-' Basic obstruction Application.EnableEvents:
-' - ae_service = enEliminate: Pushes the current Application.EnableEvents on
-'   the 'ApplEventsStack' and turns it off.
-' - ae_service = enRestore: Pops the status form the 'ApplEventsStack' and
-'   sets Application.EnableEvents accordingly.
-' Note: This private sub may be copied to any VB-Project, specifically when all
-'       or most of the other obstructions are not relevant.
+' Obstruction service 'Application.EnableEvents':
+' Eliminate: Pushes the current Application.EnableEvents on the 'ApplEventsStack'
+'            and turns it off.
+' Restore:   Pops the status form the 'ApplEventsStack' and  sets the
+'            EnableEvents accordingly.
 '
 ' W. Rauschenberger, Berlin Nov 2021
 ' ------------------------------------------------------------------------------
@@ -135,7 +132,7 @@ Public Sub ApplEvents(ByVal ae_service As enObstService)
 
     On Error GoTo eh
     
-    Select Case ae_service
+    Select Case obs_mode
         Case enEliminate
             BasicStackPush ApplEventsStack, Application.EnableEvents
             Application.EnableEvents = False
@@ -151,25 +148,26 @@ xt: Exit Sub
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
 
-Public Sub MergedAreas(ByVal mc_service As enObstService, _
-                       ByVal mc_range As Range)
+Public Sub MergedAreas(ByVal obs_mode As enObstService, _
+                       ByVal obs_ws As Worksheet, _
+              Optional ByVal obs_range As Range)
 ' ------------------------------------------------------------------------------
-' Basic obstruction 'Merged Areas/Cells':
-' - mc_service = enEliminate: Any merge area concerned by the provided
-'   range's (mc_range) rows and columns is un-merged by saving the merge areas'
-'   address in a temporary range name and additionally in a Dictionary. The
-'   content of the top left cell is copied to all cells in the un-merged area
-'   to prevent a loss of the merge area's content even when the top row or left
-'   column is deleted. The named ranges address is automatically maintained by
-'   Excel throughout any rows operations performed within the originally merged
-'   area's top and bottom row. I.e. any row copied or inserted above the top
-'   row or below the bottom row will not become part of the retored merge
-'   area(s).
-' - mc_service = enRestore: All merge areas registered by a temporary range
-'   name are re-merged, thereby eliminating all duplicated content except the
-'   one in the top left cell.
-'
-' Note: When no range (mc_range) is provided it defaults to current 'Selection'.
+' Obstruction service 'Merged Areas/Cells':
+' Eliminate: Any merge area concerned by the provided range's (obs_range) rows
+'            and columns is un-merged by saving the merge areas' address in a
+'            temporary range name and additionally in a Dictionary. The content
+'            of the top left cell is copied to all cells in the un-merged area
+'            to prevent a content loss even when the top row or the left column
+'            is deleted. The named ranges address is automatically maintained by
+'            Excel throughout any rows operations performed within the
+'            originally merged area's top and bottom row. I.e. any row copied or
+'            inserted above the top row or below the bottom row will not become
+'            part of the retored merge area(s).
+' Restore:   The temporary range name is popped from the sheet specific stack.
+'            The ranges are re-merged, thereby eliminating all duplicated
+'            content except the one in the top left cell. In contrast to
+'            'Eliminate' the range argument (obs_range) is not used but the
+'            Worksheet (obs_ws) only.
 '
 ' Requires: Reference to "Microsoft Scripting Runtime"
 '
@@ -179,36 +177,34 @@ Public Sub MergedAreas(ByVal mc_service As enObstService, _
     
     On Error GoTo eh
     Dim dct         As Dictionary
-    Dim ws          As Worksheet
     Dim stack       As Collection
     
-    Set ws = mc_range.Worksheet
             
-    Select Case mc_service
+    Select Case obs_mode
         Case enEliminate
-            SheetProtection sp_service:=enEliminate, sp_ws:=ws
+            SheetProtection obs_mode:=enEliminate, obs_ws:=obs_ws
             
-            MergedAreas1SaveAndUnMerge mc_range
+            MergedAreas1SaveAndUnMerge obs_range
             
-            SheetProtection sp_service:=enRestore, sp_ws:=ws
+            SheetProtection obs_mode:=enRestore, obs_ws:=obs_ws
     
         Case enRestore
-            If MergedAreasSheetStacks.Exists(ws) Then
-                SheetProtection sp_service:=enEliminate, sp_ws:=ws
+            If MergedAreasSheetStacks.Exists(obs_ws) Then
+                SheetProtection obs_mode:=enEliminate, obs_ws:=obs_ws
                 
-                Set stack = SheetStack(MergedAreasSheetStacks, ws)
+                Set stack = SheetStack(MergedAreasSheetStacks, obs_ws)
                 If Not BasicStackIsEmpty(stack) Then
                     Set dct = BasicStackPop(stack)
                     MergedAreas2Restore dct
                 End If
-                SheetStack(MergedAreasSheetStacks, ws) = stack
+                SheetStack(MergedAreasSheetStacks, obs_ws) = stack
                 
-                SheetProtection sp_service:=enRestore, sp_ws:=ws
-            Else
-                Err.Raise AppErr(1), ErrSrc(PROC), _
-                          "The corresponding merged cells 'Save' is missing for the merged cells 'Restore' " & _
-                          "for sheet '" & ws.Name & "'! " & _
-                          "P a i r e d  'Save' and 'Restore' operations are obligatory!"
+                SheetProtection obs_mode:=enRestore, obs_ws:=obs_ws
+'            Else
+'                Err.Raise AppErr(1), ErrSrc(PROC), _
+'                          "The corresponding merged cells 'Save' is missing for the merged cells 'Restore' " & _
+'                          "for sheet '" & obs_ws.Name & "'! " & _
+'                          "P a i r e d  'Save' and 'Restore' operations are obligatory!"
             End If
     End Select
 
@@ -217,25 +213,24 @@ xt: Exit Sub
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
 
-Public Sub SheetProtection(ByVal sp_service As enObstService, _
-                  Optional ByVal sp_wb As Workbook = Nothing, _
-                  Optional ByVal sp_ws As Worksheet = Nothing)
+Public Sub SheetProtection(ByVal obs_mode As enObstService, _
+                  Optional ByVal obs_wb As Workbook = Nothing, _
+                  Optional ByVal obs_ws As Worksheet = Nothing)
 ' ------------------------------------------------------------------------------
-' Basic obstruction 'Sheet Protection':
-' Important: The eliminate and retore service is either provided for the
-'            provided Worksheet (sp_ws) or when non is provided for all Worksheets in the
-'            Workbook (sp_wb).
-' - sp_service = enEliminate: Pushes the Worksheet's (sp_ws) protection
-'   status and turns on the Worksheet's specific stack and sets the protection
-'   off. When no Worksheet is provided all sheets protection is set off.
-' - sp_service = enRestore: Restores the Worksheets's (sp_ws) protection
-'   status by popping the sheet's former protection status off its dedicated
-'   stack. When no Worksheet is provided this is done for all sheets in the
-'   Workbook (sp_wb).
-' Attention! When neither a Workbook nor a Worksheet is provided the service
-'            raises an error
+' Obstruction service 'Sheet Protection':
+' The 'Eliminate' and 'Retore' service is either provided for the provided
+' Worksheet (obs_ws) or when none is provided for all Worksheets in the provided
+' Workbook (obs_wb). When neither a Workbook nor a Worksheet is provided the
+' service raises an error
+' Eliminate: Pushes the Worksheet's (obs_ws) protection status and turns on the
+'            Worksheet's specific stack and sets the protection off. When no
+'            Worksheet is provided all sheets protection is set off.
+' Restore:   Restores the Worksheets's (obs_ws) protection status by popping the
+'            sheet's former protection status off its dedicated stack. When no
+'            Worksheet is provided this is done for all sheets in the Workbook
+'            (obs_wb).
 '
-' Requires Reference to "Microsoft Scripting Runtime"
+' Requires:  Reference to "Microsoft Scripting Runtime"
 '
 ' W. Rauschenberger Berlin June 2019
 ' ------------------------------------------------------------------------------
@@ -246,22 +241,22 @@ Public Sub SheetProtection(ByVal sp_service As enObstService, _
     Dim ws      As Worksheet
     Dim stack   As Collection
 
-    If sp_wb Is Nothing And sp_ws Is Nothing _
-    Then Err.Raise AppErr(1), ErrSrc(PROC), "Neither a Worksheet (sp_ws) nor a Workbook (sp_wb) is provided!"
+    If obs_wb Is Nothing And obs_ws Is Nothing _
+    Then Err.Raise AppErr(1), ErrSrc(PROC), "Neither a Worksheet (obs_ws) nor a Workbook (obs_wb) is provided!"
     
-    If Not sp_wb Is Nothing And sp_ws Is Nothing Then Set wb = sp_wb
-    If sp_wb Is Nothing And Not sp_ws Is Nothing Then Set wb = sp_ws.Parent
+    If Not obs_wb Is Nothing And obs_ws Is Nothing Then Set wb = obs_wb
+    If obs_wb Is Nothing And Not obs_ws Is Nothing Then Set wb = obs_ws.Parent
     
     If SheetProtectionSheetStacks Is Nothing Then Set SheetProtectionSheetStacks = New Dictionary
     
     For Each ws In wb.Worksheets
-        If sp_ws Is Nothing Or Not sp_ws Is Nothing And ws Is sp_ws Then
+        If obs_ws Is Nothing Or Not obs_ws Is Nothing And ws Is obs_ws Then
             With ws
                 If Not SheetProtectionSheetStacks.Exists(ws) Then
                     Set stack = New Collection
                     SheetProtectionSheetStacks.Add ws, stack
                 End If
-                Select Case sp_service
+                Select Case obs_mode
                     Case enEliminate
                         Set stack = SheetStack(SheetProtectionSheetStacks, ws)
                         BasicStackPush stack, .ProtectContents      ' push True or False on the 'Stack'
@@ -281,7 +276,7 @@ Public Sub SheetProtection(ByVal sp_service As enObstService, _
                         End If
                 End Select
             End With
-            If Not sp_ws Is Nothing Then GoTo xt ' this Worksheet only
+            If Not obs_ws Is Nothing Then GoTo xt ' this Worksheet only
         End If
     Next ws
 
@@ -376,46 +371,6 @@ Private Function ColsHidden(ByVal ch_ws As Worksheet, _
 
 End Function
 
-Private Function CstmVwExists(ByVal ce_ws As Worksheet, _
-                              ByVal ce_cv As Variant) As Boolean
-' ------------------------------------------------------------------------------
-' Returns TRUE when the CustomView (vCv) - which may be a CustomView object or a
-' CustoView's name - exists in the Workbook (vwb). If vCv is provided as a
-' CustomView object only its name is used for the existence check.
-' ------------------------------------------------------------------------------
-    Const PROC  As String = "CustomViewExists"      ' This procedure's name for the error handling and execution tracking
-    
-    On Error GoTo eh
-    Dim wb      As Workbook
-    Dim cv1     As CustomView
-    Dim cvName  As String
-    Dim cv2     As CustomView
-    
-    Set wb = ce_ws.Parent
-    
-    On Error Resume Next
-    Set cv1 = ce_cv
-    If Err.Number = 0 Then
-        '~~ The custom view to check is provided by a CustomView object
-        For Each cv2 In wb.CustomViews
-            If cv2 Is cv1 Then
-                CstmVwExists = True
-                GoTo xt
-            End If
-        Next cv2
-    Else
-        For Each cv2 In wb.CustomViews
-            If cv2.Name = cvName Then
-                CstmVwExists = True
-                GoTo xt
-            End If
-        Next cv2
-    End If
-    
-xt: Exit Function
-    
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
-End Function
 
 Private Sub EoP(ByVal e_proc As String, _
        Optional ByVal e_inf As String = vbNullString)
@@ -565,17 +520,19 @@ Private Function ErrSrc(ByVal sProc As String) As String
     ErrSrc = "mObstructions" & "." & sProc
 End Function
 
-Public Sub FilteredRowsHiddenCols(ByVal frhc_service As enObstService, _
-                                  ByVal frhc_ws As Worksheet)
+Public Sub FilteredRowsHiddenCols(ByVal obs_mode As enObstService, _
+                                  ByVal obs_ws As Worksheet)
 ' ------------------------------------------------------------------------------
-' Basic obstruction 'Filtered Rows' (i.e. AutoFilter) and/or 'Hidden Columns':
-' - frhc_service = enEliminate: When AutoFilter is active a CustomView with a
-'   temporary name is added and pushed on the 'FilteredRowsAndOrColsStack' and
-'   AutoFilter is turned off and hidden columns are displayed. When neither
-'   AutoFilter is active nor a columnd is hidden a vbNullString is pushed on the
-'   'FilteredRowsAndOrColsStack'.
+' Obstruction service 'Filtered Rows':
+' The service covers 'AutoFilter' and 'Hidden Columns'.
+' Eliminate: When AutoFilter is active a CustomView with a temporary name is
+'            added and pushed on the 'FilteredRowsAndOrColsStack' and
+'            'AutoFilter' is turned off and hidden columns are displayed. When
+'            neither 'AutoFilter' is active nor a column is hidden a
+'            vbNullString is pushed on the sheet specific stack of the
+'            'FilteredRowsAndOrColsStacks'.
 '
-' - frhc_service = enRestore: Restores the temporary CustomView with the name
+' - obs_mode = enRestore: Restores the temporary CustomView with the name
 '   poped from the sheet stack of the 'FilteredRowsHiddenColsSheetStacks' which
 '   turns AutoFilter back on and hiddes formerly hidden rows. When a
 '   vbNullstring is poped no action is taken.
@@ -599,16 +556,16 @@ Public Sub FilteredRowsHiddenCols(ByVal frhc_service As enObstService, _
     Dim wb      As Workbook
     Dim ws      As Worksheet
     
-    Set wb = frhc_ws.Parent
+    Set wb = obs_ws.Parent
     
-    Select Case frhc_service
+    Select Case obs_mode
         Case enEliminate
         
-            SheetProtection sp_service:=enEliminate, sp_ws:=frhc_ws
-            Set stack = SheetStack(FilteredRowsHiddenColsSheetStacks, frhc_ws)
-            FilteredRowsHiddenCols1Eliminate frhc_ws, stack
-            SheetStack(FilteredRowsHiddenColsSheetStacks, frhc_ws) = stack
-            SheetProtection sp_service:=enRestore, sp_ws:=frhc_ws       ' Possibly nested restore ensuring protection status restore
+            SheetProtection obs_mode:=enEliminate, obs_ws:=obs_ws
+            Set stack = SheetStack(FilteredRowsHiddenColsSheetStacks, obs_ws)
+            FilteredRowsHiddenCols1Eliminate obs_ws, stack
+            SheetStack(FilteredRowsHiddenColsSheetStacks, obs_ws) = stack
+            SheetProtection obs_mode:=enRestore, obs_ws:=obs_ws       ' Possibly nested restore ensuring protection status restore
         
         Case enRestore
         
@@ -616,11 +573,11 @@ Public Sub FilteredRowsHiddenCols(ByVal frhc_service As enObstService, _
             '~~ Showing a CustomView potentially fails (i.e. stops half way dome) when any sheet is protected.
             '~~ The only way to re-establish a CustomView is to make sure no sheet is protected. By no providing
             '~~ a certain Worksheet but only the Workbook does this with the SheetProtection obstruction service.
-            SheetProtection sp_service:=enEliminate, sp_wb:=frhc_ws.Parent   ' unprotect all sheets
-            Set stack = SheetStack(FilteredRowsHiddenColsSheetStacks, frhc_ws)
-            FilteredRowsHiddenCols2Restore frhc_ws, stack
+            SheetProtection obs_mode:=enEliminate, obs_wb:=obs_ws.Parent   ' unprotect all sheets
+            Set stack = SheetStack(FilteredRowsHiddenColsSheetStacks, obs_ws)
+            FilteredRowsHiddenCols2Restore obs_ws, stack
             SheetStack(FilteredRowsHiddenColsSheetStacks, ws) = stack
-            SheetProtection sp_service:=enRestore, sp_wb:=frhc_ws.Parent     ' re-protect all sheets originally protected
+            SheetProtection obs_mode:=enRestore, obs_wb:=obs_ws.Parent     ' re-protect all sheets originally protected
     End Select
 
 xt: Exit Sub
@@ -629,10 +586,10 @@ eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
 
 Private Sub FilteredRowsHiddenCols1Eliminate( _
-            ByVal frhc_ws As Worksheet, _
-            ByRef frhc_stack As Collection)
+            ByVal obs_ws As Worksheet, _
+            ByRef obs_stack As Collection)
 ' ------------------------------------------------------------------------------
-' - Pushes a temporary CustomView name on the stack (frhc_stck) when either
+' - Pushes a temporary CustomView name on the stack (obs_stck) when either
 '   AutoFilter is TRUIE or any columns are hidden,
 ' - Sets AutoFilter off and displays any hidden columns.
 ' ------------------------------------------------------------------------------
@@ -643,11 +600,11 @@ Private Sub FilteredRowsHiddenCols1Eliminate( _
     Dim wb                  As Workbook
     
     BoP ErrSrc(PROC)
-    Set wb = frhc_ws.Parent
+    Set wb = obs_ws.Parent
     TempCustViewName = vbNullString
     
-    If frhc_ws.AutoFilterMode = True Or ColsHidden(frhc_ws) Then
-        TempCustViewName = TEMP_CUSTOM_VIEW_NAME & "_" & Replace(frhc_ws.Name, " ", "_")
+    If obs_ws.AutoFilterMode = True Or ColsHidden(obs_ws) Then
+        TempCustViewName = TEMP_CUSTOM_VIEW_NAME & "_" & Replace(obs_ws.Name, " ", "_")
         '~~ Create a CustomView, keep a record of the CustomView and turn filtering off
         On Error Resume Next
         wb.CustomViews(TempCustViewName).Delete ' in case one exists under this name
@@ -655,10 +612,10 @@ Private Sub FilteredRowsHiddenCols1Eliminate( _
         wb.CustomViews.Add ViewName:=TempCustViewName, RowColSettings:=True
         
         '~~ Turn off AutoFilter and display hidden columns
-        frhc_ws.AutoFilterMode = False
-        ColsHidden frhc_ws, False
+        obs_ws.AutoFilterMode = False
+        ColsHidden obs_ws, False
     End If
-    BasicStackPush frhc_stack, TempCustViewName
+    BasicStackPush obs_stack, TempCustViewName
 
 xt: EoP ErrSrc(PROC)
     Exit Sub
@@ -666,10 +623,10 @@ xt: EoP ErrSrc(PROC)
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
 
-Private Sub FilteredRowsHiddenCols2Restore(ByVal frhc_ws As Worksheet, _
-                                           ByRef frhc_stack As Collection)
+Private Sub FilteredRowsHiddenCols2Restore(ByVal obs_ws As Worksheet, _
+                                           ByRef obs_stack As Collection)
 ' ------------------------------------------------------------------------------
-' Pops a temporary CustomView name off from the stack (frhc_stack) and when the
+' Pops a temporary CustomView name off from the stack (obs_stack) and when the
 ' temporary name is not vbNullString shows this Custom View and deletes it.
 ' ------------------------------------------------------------------------------
     Const PROC = "FilteredRowsHiddenCols2Restore"
@@ -679,14 +636,14 @@ Private Sub FilteredRowsHiddenCols2Restore(ByVal frhc_ws As Worksheet, _
     Dim TempCustViewName    As String
     
     BoP ErrSrc(PROC)
-    Set wb = frhc_ws.Parent
+    Set wb = obs_ws.Parent
     
-    If Not BasicStackIsEmpty(frhc_stack) Then
-        TempCustViewName = BasicStackPop(frhc_stack)
+    If Not BasicStackIsEmpty(obs_stack) Then
+        TempCustViewName = BasicStackPop(obs_stack)
         If TempCustViewName <> vbNullString Then
             '~~ It is absolutely essential that there are no protected sheets in the Workbook
             '~~ when the CustomView is re-shown
-            SheetProtection sp_service:=enEliminate, sp_wb:=wb
+            SheetProtection obs_mode:=enEliminate, obs_wb:=wb
 #If Debugging = 1 Then ' The mBasic component is only available (and used) in the development and test environment
             mBasic.TimedDoEvents "> wb.CustomViews(TempCustViewName).Show"
 #End If
@@ -695,12 +652,12 @@ Private Sub FilteredRowsHiddenCols2Restore(ByVal frhc_ws As Worksheet, _
             mBasic.TimedDoEvents "< wb.CustomViews(TempCustViewName).Show"
 #End If
             wb.CustomViews(TempCustViewName).Delete
-            SheetProtection sp_service:=enRestore, sp_wb:=wb
+            SheetProtection obs_mode:=enRestore, obs_wb:=wb
         End If
     Else
         Err.Raise AppErr(1), ErrSrc(PROC), _
                   "The corresponding filtered rows and/or hidden cols 'Save' is missing for the corresponding 'Restore' " & _
-                  "of sheet '" & frhc_ws.Name & "'! " & _
+                  "of sheet '" & obs_ws.Name & "'! " & _
                   "P a i r e d  'Save' and 'Restore' operations are obligatory!"
     End If
 
@@ -713,12 +670,12 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Sub
 
-Private Sub MergedArea1UnMerge(ByVal ma_range As Range)
+Private Sub MergedArea1UnMerge(ByVal obs_range As Range)
 ' ------------------------------------------------------------------------------
-' Saves/Restores a merged cells range (ma_range).
-' - ma_service = enEliminate: un-merges range ma_range by copying the top
+' Saves/Restores a merged cells range (obs_range).
+' - obs_mode = enEliminate: un-merges range obs_range by copying the top
 '                                left content to all cells in the merge area.
-' - ma_service = enRestore: Re-merges range ma_range.
+' - obs_mode = enRestore: Re-merges range obs_range.
 ' ------------------------------------------------------------------------------
     Const PROC As String = "MergedArea"
     
@@ -728,13 +685,13 @@ Private Sub MergedArea1UnMerge(ByVal ma_range As Range)
     Dim ws      As Worksheet
     
     Application.ScreenUpdating = False
-    Set ws = ma_range.Parent
+    Set ws = obs_range.Parent
     ApplEvents enEliminate
-    SheetProtection sp_service:=enEliminate, sp_ws:=ws
+    SheetProtection obs_mode:=enEliminate, obs_ws:=ws
     
-    With ma_range
+    With obs_range
         '~~ Avoid automatic rows height adjustment by setting it explicit
-        For Each rRow In ma_range.Rows
+        For Each rRow In obs_range.Rows
             With rRow
                 .RowHeight = .RowHeight + 0.01
             End With
@@ -744,8 +701,8 @@ Private Sub MergedArea1UnMerge(ByVal ma_range As Range)
         '~~ e.g. when a row is deleted or moved up or down
         '~~ it is copied to all other cells. Merge will return to
         '~~ the then top left cell's content.
-        ma_range.Cells(1, 1).Copy
-        For Each cel In ma_range.Cells
+        obs_range.Cells(1, 1).Copy
+        For Each cel In obs_range.Cells
             If cel.Value = vbNullString Then
                 cel.PasteSpecial Paste:=xlPasteAllExceptBorders, _
                              operation:=xlNone, _
@@ -754,18 +711,18 @@ Private Sub MergedArea1UnMerge(ByVal ma_range As Range)
              End If
         Next cel
         Application.CutCopyMode = False
-    End With ' ma_range
+    End With ' obs_range
     
-xt: SheetProtection sp_service:=enRestore, sp_ws:=ws
+xt: SheetProtection obs_mode:=enRestore, obs_ws:=ws
     ApplEvents enRestore
     Exit Sub
 
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
 
-Private Sub MergedArea2ReMerge(ByVal ma_range As Range)
+Private Sub MergedArea2ReMerge(ByVal obs_range As Range)
 ' ------------------------------------------------------------------------------
-' Re-merges range ma_range.
+' Re-merges range obs_range.
 ' ------------------------------------------------------------------------------
     Const PROC As String = "MergedArea"
     
@@ -779,12 +736,12 @@ Private Sub MergedArea2ReMerge(ByVal ma_range As Range)
         .ScreenUpdating = False
         
         '~~ Reset to original row height
-        For Each rRow In ma_range.Rows
+        For Each rRow In obs_range.Rows
             On Error Resume Next
             With rRow: .RowHeight = .RowHeight - 0.01: End With
         Next rRow
         .DisplayAlerts = False ' prevent allert for content in other cells which is ignored
-        ma_range.Merge
+        obs_range.Merge
         .DisplayAlerts = True
                 
         .EnableEvents = bEvents
@@ -897,8 +854,8 @@ Private Sub MergedAreas1SaveAndUnMerge(ByVal ma_source As Variant)
     
     Set r = ma_source
     Set ws = r.Worksheet
-    SheetProtection sp_service:=enEliminate, sp_ws:=ws
-    ApplEvents ae_service:=enEliminate ' avoid any interference with Worksheet_Change actions
+    SheetProtection obs_mode:=enEliminate, obs_ws:=ws
+    ApplEvents obs_mode:=enEliminate ' avoid any interference with Worksheet_Change actions
     
     If BasicStackIsEmpty(SheetStack(MergedAreasSheetStacks, ws)) _
     Then RangeNamesRemove nr_wb:=ws.Parent, nr_ws:=ws, nr_generic_name:=TEMP_MERGED_AREA_NAME
@@ -926,8 +883,8 @@ Private Sub MergedAreas1SaveAndUnMerge(ByVal ma_source As Variant)
     Else BasicStackPush stack, dct
     SheetStack(MergedAreasSheetStacks, ws) = stack
     
-    ApplEvents ae_service:=enRestore
-    SheetProtection sp_service:=enRestore, sp_ws:=ws
+    ApplEvents obs_mode:=enRestore
+    SheetProtection obs_mode:=enRestore, obs_ws:=ws
 
 xt: Exit Sub
     
@@ -955,7 +912,7 @@ Private Sub MergedAreas2Restore(ByVal ma_source As Variant)
                 Set dctBorders = dct.Items()(i)                         ' Get border properties
                 Set rMergeArea = Range(RangeNameMergedArea)             ' Set the to-be-merged range
                 Set ws = rMergeArea.Worksheet
-                ApplEvents ae_service:=enEliminate                      ' avoid any interference with Worksheet_Change actions
+                ApplEvents obs_mode:=enEliminate                      ' avoid any interference with Worksheet_Change actions
                 
                 MergedArea2ReMerge rMergeArea                           ' Merge the range named RangeNameMergedArea
                 MergedAreaBorders2Restore rMergeArea, dctBorders        ' CleanUp the border proprties
@@ -963,7 +920,7 @@ Private Sub MergedAreas2Restore(ByVal ma_source As Variant)
                                , nr_ws:=ws _
                                , nr_generic_name:=RangeNameMergedArea   ' Remove the no longer required range name
                                
-                ApplEvents ae_service:=enRestore
+                ApplEvents obs_mode:=enRestore
             End If
         Next i
     End If
@@ -981,33 +938,80 @@ Public Sub All(ByVal obs_mode As enObstService, _
       Optional ByVal obs_merged_cells As Boolean = True, _
       Optional ByVal obs_sheet_protection As Boolean = True)
 ' ------------------------------------------------------------------------------
+' Obstructions 'All' services in the sense all but ....
+' Eliminate: Eliminates all obstruction not explicitely denied by the
+'            corresponding argument
+' Restore:   Restores all obstructions not explicitely denied by the
+'            corresponding argument
+' Attention: Eliminate and Restore service need to be exactly paired!
 '
+' W. Rauschenberger Berlin, Dec 2021
 ' ------------------------------------------------------------------------------
-                         
-    mObstructions.Obstructions obs_service:=obs_mode _
-                             , obs_ws:=obs_ws _
-                             , obs_range:=obs_range _
-                             , obs_application_events:=obs_application_events _
-                             , obs_filtered_rows_hidden_cols:=obs_filtered_rows_hidden_cols _
-                             , obs_merged_cells:=obs_merged_cells _
-                             , obs_sheet_protection:=obs_sheet_protection
+    Const PROC = "All"
+    
+    On Error GoTo eh
+    Select Case obs_mode
+        Case enEliminate
+        
+            If obs_application_events _
+            Then ApplEvents enEliminate
+            
+            If obs_sheet_protection _
+            Then SheetProtection obs_mode:=enEliminate, obs_ws:=obs_ws
+            
+            If obs_filtered_rows_hidden_cols _
+            Then FilteredRowsHiddenCols enEliminate, obs_ws
+            
+            If obs_merged_cells _
+            Then
+                '~~ Ensure the provided obs_range argument is a range of the provided Worksheet
+                '~~ and throw an error if not
+                If obs_range Is Nothing _
+                Then Err.Raise AppErr(1), ErrSrc(PROC), _
+                               "The range argument (obs_range) required for the 'FilteredRowsHiddenCols' " & _
+                               "obstruction service is missing when this service included in the 'All' service " & _
+                               "is not explicitely denied (argument obs_filtered_rows_hidden_cols:=False)!"
+                If Not obs_range.Worksheet Is obs_ws _
+                Then Err.Raise AppErr(1), ErrSrc(PROC), _
+                               "The provided range (obs_range) is not one of the provided Worksheet (obs_ws)!" & "||" & _
+                               "The '" & ErrSrc(PROC) & "' service only manages merged areas which relate to " & _
+                               "a provided range's rows and columns. The argument 'obs_range' is optional only " & _
+                               "for all obstruction services but this one - for which the argument 'obs_merged_cells' " & _
+                               "defaults to TRUE"
 
+                MergedAreas obs_mode:=enEliminate, obs_ws:=obs_ws, obs_range:=obs_range
+            End If
+        Case enRestore
+                        
+            If obs_merged_cells _
+            Then MergedAreas obs_mode:=enRestore, obs_ws:=obs_ws, obs_range:=obs_range
+            
+            If obs_filtered_rows_hidden_cols _
+            Then FilteredRowsHiddenCols obs_mode:=enRestore, obs_ws:=obs_ws
+            
+            If obs_sheet_protection _
+            Then SheetProtection obs_mode:=enRestore, obs_ws:=obs_ws
+            
+            If obs_application_events _
+            Then ApplEvents enRestore
+            
+    End Select
+
+xt: Exit Sub
+    
+eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
 
 Public Sub Rewind()
 ' ------------------------------------------------------------------------------
 ' Rewinds all set-off obstructions in order to have all Worksheets finally
 ' reset to their original status. This is definitely helpfull in case of an
-' error which would leave obstructions un-restored otherwise. When no Worsheet
-' is provided all obstructions for all Worksheets are rewinded, otherwise only
-' those of the provided Worksheet.
-' When obstructions are managed for mor than one Worksheet at a time - less
-' likely though - all obstruction rewinds are performed in reverse order.
-' ws1, ws2, ws3 - ws3, ws2, ws1. This is primarily essential when filtered rows
-' and hidden columns are restored because this is done by means of Custom Views.
-' Though this obstruction is done per Worksheet, the means - a Custom View -
-' is Workbook specivific. The very first Custom View added has to be the last
-' one shown therefore.
+' error which would leave obstructions un-restored otherwise.
+' Rewind considers more than one concerned Worksheet and rewinds them in reverse
+' order (ws1, ws2, ws3 - ws3, ws2, ws1). This is primarily essential when
+' filtered rows and/or hidden columns are restored because this is done by means
+' of Custom Views. Though any Custom View has a Workbook scope CustomViews are
+' stored per Worksheet.
 '
 ' W. Rauschenberger Berlin, Nov 2021
 ' ------------------------------------------------------------------------------
@@ -1015,10 +1019,8 @@ Public Sub Rewind()
     
     On Error GoTo eh
     Dim ws                  As Worksheet
-    Dim v                   As Variant
     Dim stack               As Collection
     Dim i                   As Long
-    Dim msg                 As New Collection
     
     '~~ Restore Filtered Rows and/or Hidden Columns for all Worksheets in revers order !!
     If Not FilteredRowsHiddenColsSheetStacks Is Nothing Then
@@ -1026,8 +1028,7 @@ Public Sub Rewind()
             Set ws = FilteredRowsHiddenColsSheetStacks.Keys()(i)
             Set stack = SheetStack(FilteredRowsHiddenColsSheetStacks, ws)
             While Not BasicStackIsEmpty(stack)
-                FilteredRowsHiddenCols2Restore frhc_ws:=ws, frhc_stack:=stack
-'                msg.Add "FilteredRowsHiddenCols sheet '" & ws.Name & "' restored!"
+                FilteredRowsHiddenCols2Restore obs_ws:=ws, obs_stack:=stack
                 SheetStack(FilteredRowsHiddenColsSheetStacks, ws) = stack
                 Set stack = SheetStack(FilteredRowsHiddenColsSheetStacks, ws)
             Wend
@@ -1040,8 +1041,7 @@ Public Sub Rewind()
             Set ws = SheetProtectionSheetStacks.Keys()(i)
             Set stack = SheetProtectionSheetStacks(ws)
             While Not BasicStackIsEmpty(stack)
-                SheetProtection sp_service:=enRestore, sp_ws:=ws
-'                msg.Add "Protection sheet '" & ws.Name & "' retored!"
+                SheetProtection obs_mode:=enRestore, obs_ws:=ws
             Wend
         Next i
     End If
@@ -1050,7 +1050,6 @@ Public Sub Rewind()
     If Not ApplEventsStack Is Nothing Then
         While Not BasicStackIsEmpty(ApplEventsStack)
             Application.EnableEvents = BasicStackPop(ApplEventsStack)
-'            msg.Add "ApplicationEvents retored!"
         Wend
     End If
     
@@ -1063,7 +1062,6 @@ Public Sub Rewind()
             Set stack = SheetStack(MergedAreasSheetStacks, ws)
             While Not BasicStackIsEmpty(stack)
                 MergedAreas2Restore BasicStackPop(stack) ' popped is a Dictionary of merge area range names
-'                msg.Add "Merged Area(s) sheet '" & ws.Name & "' retored!"
                 SheetStack(MergedAreasSheetStacks, ws) = stack
                 Set stack = SheetStack(MergedAreasSheetStacks, ws)
             Wend
@@ -1072,61 +1070,8 @@ Public Sub Rewind()
         Next i
     End If
     
-xt: If msg.Count > 0 Then For Each v In msg:  Debug.Print v:  Next v
-    Exit Sub
-
-eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
-End Sub
-
-Private Sub Obstructions(ByVal obs_service As enObstService, _
-                         ByVal obs_ws As Worksheet, _
-                         ByVal obs_range As Range, _
-                Optional ByVal obs_sheet_protection As Boolean = True, _
-                Optional ByVal obs_filtered_rows_hidden_cols As Boolean = True, _
-                Optional ByVal obs_merged_cells As Boolean = True, _
-                Optional ByVal obs_application_events As Boolean = True)
-' --------------------------------------------------------------------
-' Eliminates and Restores obstructions indicated True which is the
-' default for all.
-'
-' Requires: - Reference to "Microsoft Scripting Runtime"
-'           - Module mErrHndlr
-'           - Module mExists
-' --------------------------------------------------------------------
-    Const PROC = "Obstructions"
-    
-    On Error GoTo eh
-
-    Select Case obs_service
-        Case enEliminate
-            
-            If obs_application_events Then ApplEvents enEliminate
-            If obs_sheet_protection Then SheetProtection sp_service:=enEliminate, sp_ws:=obs_ws
-            If obs_filtered_rows_hidden_cols Then FilteredRowsHiddenCols enEliminate, obs_ws
-            If obs_merged_cells Then
-                '~~ Ensure the provided frhc_range argument is a range of the provided Worksheet
-                '~~ and throw an error if not
-                If Not obs_range.Worksheet Is obs_ws _
-                Then Err.Raise AppErr(1), ErrSrc(PROC), _
-                               "The provided range (frhc_range) is not one of the provided Worksheet (obs_ws)!" & "||" & _
-                               "The '" & ErrSrc(PROC) & "' service only manages merged areas which relate to " & _
-                               "a provided range's rows and columns. The argument 'obs_range' is optional only " & _
-                               "for all obstruction services but this one - for which the argument 'obs_merged_cells' " & _
-                               "defaults to TRUE"
-
-                MergedAreas enEliminate, obs_range
-            End If
-        Case enRestore
-                        
-            If obs_merged_cells Then MergedAreas enRestore, obs_ws
-            If obs_filtered_rows_hidden_cols Then FilteredRowsHiddenCols enRestore, obs_ws
-            If obs_sheet_protection Then SheetProtection sp_service:=enRestore, sp_ws:=obs_ws
-            If obs_application_events Then ApplEvents enRestore
-            
-    End Select
-         
 xt: Exit Sub
-    
+
 eh: If ErrMsg(ErrSrc(PROC)) = vbYes Then: Stop: Resume
 End Sub
 

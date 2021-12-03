@@ -41,7 +41,7 @@ Public Sub NamedRanges(ByVal nr_service As enObstService, _
             Next nm
             '~~ Collect cells with a formula referencing on of the collected names
             For Each ws In wb.Sheets
-                SheetProtection sp_service:=enEliminate, sp_ws:=ws
+                SheetProtection obs_mode:=enEliminate, obs_ws:=ws
                 For Each cel In ws.UsedRange.SpecialCells(xlCellTypeFormulas)
                     Debug.Print "cell with formula: " & cel.Address   ' & ", formula=" & cel.Formula2Local
                     With cel
@@ -52,7 +52,7 @@ Public Sub NamedRanges(ByVal nr_service As enObstService, _
                         Next v
                     End With
                 Next cel
-                SheetProtection sp_service:=enRestore, sp_ws:=ws
+                SheetProtection obs_mode:=enRestore, obs_ws:=ws
             Next ws
         
         Case enRestore
