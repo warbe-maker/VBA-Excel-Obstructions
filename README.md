@@ -20,11 +20,15 @@ When it comes to merged cells experienced VBA developers say: "Don't use them. T
 The _Eliminate_ service un-merges all merged areas which do relate to a given range. I.e. merged cells which relate to given ranges rows or columns. The _Eliminate_ service copies the content of the merged area into each un-merged cell. So no matter which column or row may be removed the range can be re-merged by the _Restore_ service. No hassle ever again.
 
 ## Installation
-Download and import [_mObstructions_][1] or have a look at the complete [development and test Workbook][2] which also provides an unattended self asserting progression test. All can be found in the corresponding public [GitHub Repository][2]
+1. Download [_mObstructions.bas_][1] or have a look at the complete [development and test Workbook][2] which also provides an unattended self asserting progression test.
+2. Import the _mObstruction.bas_ 
+3. In the VBE add a Reference to the "Microsoft Scripting Runtime"
+
+Have a look at the corresponding public [GitHub Repository][2]
 
 ## Usage
 ### The _All_ service
-For a 'brute force' approach _mObstructions.All_ performs all the other services allowing to skip one or another. _All_ is an 'all but ...' service because any obstruction may be ignored.  
+For a 'brute force' approach _All_ service performs all the other individual obstruction services in an all but ... manner. I.e. individual obstructions by default included may be exempted.  
 
 The _All_ service is used as follows
 ```vb
@@ -37,13 +41,38 @@ The _All_ service has the following named arguments:
 
 |    Part              | Description                    |
 | -------------------- |------------------------------- |
-| obs_service          | Enumerated expression enEliminate or enRestore |
-| obs_ws               | Expression identifying a Worksheet object |
-| obs_range            | Range expression pointing to the current selected cells of those cells which should be considered for an un-merge |
-| obs_.....            | Boolean expression, optional, default to True. When set to False the corresponding obstruction is ignored. |
+| _obs\_service_          | Enumerated expression, either _enEliminate_ or _enRestore_ |
+| _obs\_ws_               | Expression identifying a Worksheet object. The Worksheet for which the obstructions are to be eliminated or retored. |
+| _obs\_range_            | Range expression, obtional, defaults to Nothing. The range is only obligatory when the MergedAreas obstruction is performed. The range usually points to the current selected cells of which the rows and columns are considered relevant for any merged area's un-merge. |
+| _obs\_\<obstruction>_     | Boolean expression, optional, default to True. When set to False the corresponding obstruction is ignored. |
 
-All the other public obstruction services may also be performed individually as an alternative to the 'all but ...' approach.
+### The individual obstruction services
+Any individual obstruction service may be performed in any procedure provided eliminate and restore is performed strictly paired.  
 
+| Service Name             | Service |
+|--------------------------|---------|
+| _ApplEvents_             | Eliminate (turn off) and Restore (turn back on) Application.EnableEvents |
+| _MergedAreas_            | Eliminate (un-merge) and Restore (re-merge) merged areas concerned by a specific selected range. |
+| _SheetProtection_        | Eliminate (un-protect) and Restore (protect) an individual Worksheet |
+| _FilteredRowsHiddenCols_ | Eliminate (turn off _AutoFilter_, display hidden columns) and Restore (re-show a temporary created CustomView) of an individual Worksheet. It should be noticed that the means CustomView is not Worksheet specific but has a Workbook scope. Though AutoSave and hidden columns are managed for a specific Worksheet only the CustomView concerns all sheets. This is perfectly implemented however. |
+
+### The _Rewind_ service
+This service typically performed after an error condition to ensure that no obstruction is left un-restored. However, this service must only be used in the entry procedure, i.e. the procedure which performed an obstruction eliminate  in the first place. Under regular conditions, when code execution ends in the entry procedure this service will have nothing to be performed and thus will not do any harm. A typical usage scenario in the entry procedure may look as follows:
+
+```VB
+    On Error Goto eh
+    mObstructions.All enEliminate, ThisWorksheet
+    ' in here may be any number of nested sub procedures
+    ' which also perform individual obstruction services e.g. ' to ensure sheet protection of a specific sheet is turned ' off - and at the end of it restored 
+    mObstructions.All enRestore, ThisWorksheet
+    
+xt: mObstructions.Rewind
+    Exit Sub
+
+eh: 'Display error message
+    Goto xt ' perform a clean exit
+End Sub
+```
 
 [1]:https://gitcdn.link/repo/warbe-maker/Common-Excel-VBA-Obstructions-Services/master/source/mObstructions.bas
 [2]:https://gitcdn.link/repo/warbe-maker/Common-Excel-VBA-Obstructions-Services/Obstructions.xlsm
