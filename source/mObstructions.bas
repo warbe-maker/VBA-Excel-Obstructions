@@ -150,19 +150,20 @@ End Sub
 
 Public Sub MergedAreas(ByVal obs_mode As enObstService, _
                        ByVal obs_ws As Worksheet, _
-              Optional ByVal obs_range As Range)
+              Optional ByVal obs_range As Range = Nothing)
 ' ------------------------------------------------------------------------------
 ' Obstruction service 'Merged Areas/Cells':
-' Eliminate: Any merge area concerned by the provided range's (obs_range) rows
-'            and columns is un-merged by saving the merge areas' address in a
-'            temporary range name and additionally in a Dictionary. The content
-'            of the top left cell is copied to all cells in the un-merged area
-'            to prevent a content loss even when the top row or the left column
-'            is deleted. The named ranges address is automatically maintained by
-'            Excel throughout any rows operations performed within the
-'            originally merged area's top and bottom row. I.e. any row copied or
-'            inserted above the top row or below the bottom row will not become
-'            part of the retored merge area(s).
+' Eliminate: Any merge area concerned by the provided range (obs_range). When
+'            the range covers the entire rows within the used range the merge
+'            areas within these rows are eliminated. When the range covers the
+'            entire column within the used range the merged cells within these
+'            rows are eliminated. When the range covers neither of the two,
+'            i.e. is just one or more cells the merged cells of the concerned
+'            rows and columns are eliminated. Elimination means that:
+'            1. The border properties are saved
+'            2  The merged cells are unmerged
+'            3. The content of the top left cell is copied to all cells
+'            4. The merged cells area is provided with a temporary range name
 ' Restore:   The temporary range name is popped from the sheet specific stack.
 '            The ranges are re-merged, thereby eliminating all duplicated
 '            content except the one in the top left cell. In contrast to
@@ -178,14 +179,29 @@ Public Sub MergedAreas(ByVal obs_mode As enObstService, _
     On Error GoTo eh
     Dim dct         As Dictionary
     Dim stack       As Collection
+    Dim rRows       As Range
+    Dim rCols       As Range
+    Dim r           As Range
     
-            
     Select Case obs_mode
         Case enEliminate
+            
+            '~~ Determine the range searched for any merged cells
+            If obs_range Is Nothing Then
+                Set r = obs_ws.UsedRange
+            Else
+                If obs_range.Address = Intersect(obs_range.EntireColumn, obs_ws.UsedRange).Address _
+                Or obs_range.Address = Intersect(obs_range.EntireRow, obs_ws.UsedRange).Address Then
+                    Set r = obs_range
+                Else
+                    Set r = Union(Intersect(obs_range.EntireColumn, obs_ws.UsedRange), _
+                                  Intersect(obs_range.EntireRow, obs_ws.UsedRange))
+                End If
+            End If
+                        
+            '~~ Eliminate (save and un-merge) all merged cells within the determined range(s)
             SheetProtection obs_mode:=enEliminate, obs_ws:=obs_ws
-            
-            MergedAreas1SaveAndUnMerge obs_range
-            
+            MergedAreas1SaveAndUnMerge r
             SheetProtection obs_mode:=enRestore, obs_ws:=obs_ws
     
         Case enRestore
@@ -861,7 +877,7 @@ Private Sub MergedAreas1SaveAndUnMerge(ByVal ma_source As Variant)
     Then RangeNamesRemove nr_wb:=ws.Parent, nr_ws:=ws, nr_generic_name:=TEMP_MERGED_AREA_NAME
     
     Set dct = Nothing: Set dct = New Dictionary
-    For Each cel In Intersect(ws.UsedRange, r.EntireRow).Cells
+    For Each cel In r.Cells
         With cel
             If .MergeCells Then
                 If sMergeArea <> Replace(.MergeArea.Address(RowAbsolute:=False), "$", vbNullString) Then
@@ -870,8 +886,8 @@ Private Sub MergedAreas1SaveAndUnMerge(ByVal ma_source As Variant)
                     sMergeArea = Replace(.MergeArea.Address(RowAbsolute:=False), "$", vbNullString)
                     Set rMergeArea = Range(sMergeArea)
                     RangeNameAdd nm_ws:=ws, nm_wb:=ws.Parent, nm_name:=RangeNameMergedArea, nm_range:=rMergeArea
-                    MergedAreaBorders1Save rMergeArea, dctBorders   ' Get format properties
-                    dct.Add RangeNameMergedArea, dctBorders            ' Save range name and border properties to dictionary
+                    MergedAreaBorders1Save rMergeArea, dctBorders       ' Get format properties
+                    dct.Add RangeNameMergedArea, dctBorders             ' Save range name and border properties to dictionary
                     MergedArea1UnMerge rMergeArea
                 End If
             End If

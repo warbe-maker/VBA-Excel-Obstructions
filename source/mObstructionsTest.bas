@@ -544,19 +544,66 @@ Public Sub Test_04_MergedAreas()
     ws.Protect
     
     ws.Activate
+    '~~ Test 1: Concerned rows
     Debug.Assert wsTest2.MergedCells1.MergeCells = True
     Debug.Assert wsTest2.MergedCells2.MergeCells = True
     Debug.Assert wsTest2.MergedCells3.MergeCells = True
-    mObstructions.MergedAreas obs_mode:=enEliminate, obs_ws:=ws, obs_range:=r
+    mObstructions.MergedAreas obs_mode:=enEliminate, obs_ws:=ws, obs_range:=Intersect(r.EntireRow, ws.UsedRange)
     
     Debug.Assert wsTest2.MergedCells1.MergeCells = False
     Debug.Assert wsTest2.MergedCells2.MergeCells = False
     Debug.Assert wsTest2.MergedCells3.MergeCells = True ' col dependant not implemented
     
-    mObstructions.MergedAreas obs_mode:=enRestore, obs_ws:=ws, obs_range:=r
+    mObstructions.MergedAreas obs_mode:=enRestore, obs_ws:=ws
     Debug.Assert wsTest2.MergedCells1.MergeCells = True
     Debug.Assert wsTest2.MergedCells2.MergeCells = True
     Debug.Assert wsTest2.MergedCells3.MergeCells = True
+
+    '~~ Test 2: Concerned cols
+    Debug.Assert wsTest2.MergedCells1.MergeCells = True
+    Debug.Assert wsTest2.MergedCells2.MergeCells = True
+    Debug.Assert wsTest2.MergedCells3.MergeCells = True
+    
+    mObstructions.MergedAreas obs_mode:=enEliminate, obs_ws:=ws, obs_range:=Intersect(r.EntireColumn, ws.UsedRange)
+    Debug.Assert wsTest2.MergedCells1.MergeCells = True
+    Debug.Assert wsTest2.MergedCells2.MergeCells = True
+    Debug.Assert wsTest2.MergedCells3.MergeCells = False ' col dependant not implemented
+    
+    mObstructions.MergedAreas obs_mode:=enRestore, obs_ws:=ws
+    Debug.Assert wsTest2.MergedCells1.MergeCells = True
+    Debug.Assert wsTest2.MergedCells2.MergeCells = True
+    Debug.Assert wsTest2.MergedCells3.MergeCells = True
+
+    '~~ Test 3: Concerned rows and cols
+    Debug.Assert wsTest2.MergedCells1.MergeCells = True
+    Debug.Assert wsTest2.MergedCells2.MergeCells = True
+    Debug.Assert wsTest2.MergedCells3.MergeCells = True
+    
+    mObstructions.MergedAreas obs_mode:=enEliminate, obs_ws:=ws, obs_range:=r
+    Debug.Assert wsTest2.MergedCells1.MergeCells = False
+    Debug.Assert wsTest2.MergedCells2.MergeCells = False
+    Debug.Assert wsTest2.MergedCells3.MergeCells = False ' col dependant not implemented
+    
+    mObstructions.MergedAreas obs_mode:=enRestore, obs_ws:=ws
+    Debug.Assert wsTest2.MergedCells1.MergeCells = True
+    Debug.Assert wsTest2.MergedCells2.MergeCells = True
+    Debug.Assert wsTest2.MergedCells3.MergeCells = True
+
+    '~~ Test 4: No range provided
+    Debug.Assert wsTest2.MergedCells1.MergeCells = True
+    Debug.Assert wsTest2.MergedCells2.MergeCells = True
+    Debug.Assert wsTest2.MergedCells3.MergeCells = True
+    mObstructions.MergedAreas obs_mode:=enEliminate, obs_ws:=ws
+    
+    Debug.Assert wsTest2.MergedCells1.MergeCells = False
+    Debug.Assert wsTest2.MergedCells2.MergeCells = False
+    Debug.Assert wsTest2.MergedCells3.MergeCells = False ' col dependant not implemented
+    
+    mObstructions.MergedAreas obs_mode:=enRestore, obs_ws:=ws
+    Debug.Assert wsTest2.MergedCells1.MergeCells = True
+    Debug.Assert wsTest2.MergedCells2.MergeCells = True
+    Debug.Assert wsTest2.MergedCells3.MergeCells = True
+
 
 xt: mObstructions.Rewind   ' check if something to retore remained
     mErH.EoP ErrSrc(PROC)
