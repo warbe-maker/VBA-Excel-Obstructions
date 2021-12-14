@@ -74,6 +74,6 @@ eh: 'Display error message
 End Sub
 ```
 
-[1]:https://gitcdn.link/repo/warbe-maker/Common-Excel-VBA-Obstructions-Services/master/source/mObstructions.bas
-[2]:https://gitcdn.link/repo/warbe-maker/Common-Excel-VBA-Obstructions-Services/Obstructions.xlsm
+[1]:https://gitcdn.link/cdn/warbe-maker/Common-Excel-VBA-Obstructions-Services/master/source/mObstructions.bas
+[2]:https://gitcdn.link/cdn/warbe-maker/Common-Excel-VBA-Obstructions-Services/Obstructions.xlsm
 [3]:https://github.com/warbe-maker/Common-Excel-VBA-Obstructions-Services
