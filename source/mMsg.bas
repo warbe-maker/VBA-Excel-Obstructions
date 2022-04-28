@@ -743,18 +743,18 @@ Private Function ErrSrc(ByVal sProc As String) As String
 End Function
 
 Private Function GetPanesIndex(ByVal Rng As Range) As Integer
-    Dim sr As Long:          sr = ActiveWindow.SplitRow
+    Dim sR As Long:          sR = ActiveWindow.SplitRow
     Dim sc As Long:          sc = ActiveWindow.SplitColumn
     Dim r As Long:            r = Rng.Row
     Dim c As Long:            c = Rng.Column
     Dim Index As Integer: Index = 1
 
     Select Case True
-    Case sr = 0 And sc = 0: Index = 1
-    Case sr = 0 And sc > 0 And c > sc: Index = 2
-    Case sr > 0 And sc = 0 And r > sr: Index = 2
-    Case sr > 0 And sc > 0 And r > sr: If c > sc Then Index = 4 Else Index = 3
-    Case sr > 0 And sc > 0 And c > sc: If r > sr Then Index = 4 Else Index = 2
+    Case sR = 0 And sc = 0: Index = 1
+    Case sR = 0 And sc > 0 And c > sc: Index = 2
+    Case sR > 0 And sc = 0 And r > sR: Index = 2
+    Case sR > 0 And sc > 0 And r > sR: If c > sc Then Index = 4 Else Index = 3
+    Case sR > 0 And sc > 0 And c > sc: If r > sR Then Index = 4 Else Index = 2
     End Select
 
     GetPanesIndex = Index

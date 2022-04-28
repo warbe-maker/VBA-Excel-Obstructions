@@ -1,137 +1,15 @@
-22-04-13 19:42:10 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
-22-04-13 19:42:10                 >> Update Outdated (by Addin) for Obstructions.xlsm: 
-22-04-13 19:42:10 00,0000         |  >> mCompMan.UpdateOutdatedCommonComponents
-22-04-13 19:42:10 00,0412         |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
-22-04-13 19:42:10 00,0836 00,0423 |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
-22-04-13 19:42:10 00,0880         |  |  >> mUpdate.Outdated
-22-04-13 19:42:10 00,1293         |  |  |  >> mService.SaveWbk
-22-04-13 19:42:10 00,5128 00,3836 |  |  |  << mService.SaveWbk
-22-04-13 19:42:11 00,8011         |  |  |  >> mUpdate.UpdateConfirmed
-22-04-13 19:42:12 00,8127 00,0116 |  |  |  << mUpdate.UpdateConfirmed
-22-04-13 19:42:12 00,8179         |  |  |  >> mRenew.ByImport
-22-04-13 19:42:12 00,8223         |  |  |  |  > Create and activate a hidden Workbook
-22-04-13 19:42:13 02,1712 01,3489 |  |  |  |  < Create and activate a hidden Workbook
-22-04-13 19:42:13 02,1776         |  |  |  |  > Rename the to-be-removed component
-22-04-13 19:42:14 02,3154 00,1378 |  |  |  |  < Rename the to-be-removed component
-22-04-13 19:42:14 02,3219         |  |  |  |  >> mRenew.OutCommentCodeInRenamedComponent
-22-04-13 19:42:14 02,7807 00,4589 |  |  |  |  << mRenew.OutCommentCodeInRenamedComponent
-22-04-13 19:42:14 02,7918         |  |  |  |  > Remove the renamde component
-22-04-13 19:42:14 02,8010 00,0093 |  |  |  |  < Remove the renamde component
-22-04-13 19:42:14 02,8067         |  |  |  |  > (Re-)Import the up-to-date Raw Common Component
-22-04-13 19:42:14 02,8688 00,0621 |  |  |  |  < (Re-)Import the up-to-date Raw Common Component
-22-04-13 19:42:14 02,8746         |  |  |  |  > Export the Used Common Component
-22-04-13 19:42:14 02,9592 00,0846 |  |  |  |  < Export the Used Common Component
-22-04-13 19:42:14 02,9644         |  |  |  |  > Remove the activated hidden Workbook and re-activate the processed Workbook
-22-04-13 19:42:14 03,0440 00,0796 |  |  |  |  < Remove the activated hidden Workbook and re-activate the processed Workbook
-22-04-13 19:42:14 03,0495 02,2316 |  |  |  << mRenew.ByImport
-22-04-13 19:42:16 04,4614         |  |  |  >> mUpdate.UpdateConfirmed
-22-04-13 19:42:17 04,4729 00,0114 |  |  |  << mUpdate.UpdateConfirmed
-22-04-13 19:42:17 04,4782         |  |  |  >> mRenew.ByImport
-22-04-13 19:42:17 04,4834         |  |  |  |  > Create and activate a hidden Workbook
-22-04-13 19:42:18 05,8066 01,3232 |  |  |  |  < Create and activate a hidden Workbook
-22-04-13 19:42:18 05,8130         |  |  |  |  > Rename the to-be-removed component
-22-04-13 19:42:18 05,8225 00,0095 |  |  |  |  < Rename the to-be-removed component
-22-04-13 19:42:18 05,8287         |  |  |  |  >> mRenew.OutCommentCodeInRenamedComponent
-22-04-13 19:42:19 06,0006 00,1720 |  |  |  |  << mRenew.OutCommentCodeInRenamedComponent
-22-04-13 19:42:19 06,0347         |  |  |  |  > Remove the renamde component
-22-04-13 19:42:19 06,0427 00,0080 |  |  |  |  < Remove the renamde component
-22-04-13 19:42:19 06,0488         |  |  |  |  > (Re-)Import the up-to-date Raw Common Component
-22-04-13 19:42:19 06,0601 00,0114 |  |  |  |  < (Re-)Import the up-to-date Raw Common Component
-22-04-13 19:42:19 06,0663         |  |  |  |  > Export the Used Common Component
-22-04-13 19:42:19 06,0788 00,0126 |  |  |  |  < Export the Used Common Component
-22-04-13 19:42:19 06,0857         |  |  |  |  > Remove the activated hidden Workbook and re-activate the processed Workbook
-22-04-13 19:42:19 06,1756 00,0899 |  |  |  |  < Remove the activated hidden Workbook and re-activate the processed Workbook
-22-04-13 19:42:19 06,1826 01,7043 |  |  |  << mRenew.ByImport
-22-04-13 19:42:20 07,3401         |  |  |  >> mUpdate.UpdateConfirmed
-22-04-13 19:42:22 07,3535 00,0134 |  |  |  << mUpdate.UpdateConfirmed
-22-04-13 19:42:22 07,3586         |  |  |  >> mRenew.ByImport
-22-04-13 19:42:22 07,3647         |  |  |  |  > Create and activate a hidden Workbook
-22-04-13 19:42:23 08,8616 01,4970 |  |  |  |  < Create and activate a hidden Workbook
-22-04-13 19:42:23 08,8697         |  |  |  |  > Rename the to-be-removed component
-22-04-13 19:42:23 08,8793 00,0096 |  |  |  |  < Rename the to-be-removed component
-22-04-13 19:42:23 08,8870         |  |  |  |  >> mRenew.OutCommentCodeInRenamedComponent
-22-04-13 19:42:23 08,9337 00,0467 |  |  |  |  << mRenew.OutCommentCodeInRenamedComponent
-22-04-13 19:42:23 08,9845         |  |  |  |  > Remove the renamde component
-22-04-13 19:42:23 08,9927 00,0082 |  |  |  |  < Remove the renamde component
-22-04-13 19:42:23 09,0012         |  |  |  |  > (Re-)Import the up-to-date Raw Common Component
-22-04-13 19:42:23 09,0127 00,0115 |  |  |  |  < (Re-)Import the up-to-date Raw Common Component
-22-04-13 19:42:23 09,0199         |  |  |  |  > Export the Used Common Component
-22-04-13 19:42:23 09,0323 00,0124 |  |  |  |  < Export the Used Common Component
-22-04-13 19:42:23 09,0396         |  |  |  |  > Remove the activated hidden Workbook and re-activate the processed Workbook
-22-04-13 19:42:23 09,1462 00,1066 |  |  |  |  < Remove the activated hidden Workbook and re-activate the processed Workbook
-22-04-13 19:42:23 09,1539 01,7953 |  |  |  << mRenew.ByImport
-22-04-13 19:42:24 10,2568         |  |  |  >> mUpdate.UpdateConfirmed
-22-04-13 19:42:26 10,2689 00,0121 |  |  |  << mUpdate.UpdateConfirmed
-22-04-13 19:42:26 10,2743         |  |  |  >> mRenew.ByImport
-22-04-13 19:42:26 10,2827         |  |  |  |  > Create and activate a hidden Workbook
-22-04-13 19:42:27 11,8691 01,5864 |  |  |  |  < Create and activate a hidden Workbook
-22-04-13 19:42:27 11,8770         |  |  |  |  > Rename the to-be-removed component
-22-04-13 19:42:27 11,8878 00,0109 |  |  |  |  < Rename the to-be-removed component
-22-04-13 19:42:27 11,8964         |  |  |  |  >> mRenew.OutCommentCodeInRenamedComponent
-22-04-13 19:42:28 12,0514 00,1550 |  |  |  |  << mRenew.OutCommentCodeInRenamedComponent
-22-04-13 19:42:28 12,0942         |  |  |  |  > Remove the renamde component
-22-04-13 19:42:28 12,1046 00,0105 |  |  |  |  < Remove the renamde component
-22-04-13 19:42:28 12,1126         |  |  |  |  > (Re-)Import the up-to-date Raw Common Component
-22-04-13 19:42:28 12,1261 00,0134 |  |  |  |  < (Re-)Import the up-to-date Raw Common Component
-22-04-13 19:42:28 12,1337         |  |  |  |  > Export the Used Common Component
-22-04-13 19:42:28 12,1492 00,0155 |  |  |  |  < Export the Used Common Component
-22-04-13 19:42:28 12,1562         |  |  |  |  > Remove the activated hidden Workbook and re-activate the processed Workbook
-22-04-13 19:42:28 12,2627 00,1065 |  |  |  |  < Remove the activated hidden Workbook and re-activate the processed Workbook
-22-04-13 19:42:28 12,2706 01,9962 |  |  |  << mRenew.ByImport
-22-04-13 19:42:29 13,2891         |  |  |  >> mUpdate.UpdateConfirmed
-22-04-13 19:42:30 13,3013 00,0121 |  |  |  << mUpdate.UpdateConfirmed
-22-04-13 19:42:30 13,3070         |  |  |  >> mRenew.ByImport
-22-04-13 19:42:30 13,3119         |  |  |  |  > Create and activate a hidden Workbook
-22-04-13 19:42:31 14,8562 01,5444 |  |  |  |  < Create and activate a hidden Workbook
-22-04-13 19:42:31 14,8637         |  |  |  |  > Rename the to-be-removed component
-22-04-13 19:42:31 14,8734 00,0097 |  |  |  |  < Rename the to-be-removed component
-22-04-13 19:42:31 14,8807         |  |  |  |  >> mRenew.OutCommentCodeInRenamedComponent
-22-04-13 19:42:32 15,0935 00,2129 |  |  |  |  << mRenew.OutCommentCodeInRenamedComponent
-22-04-13 19:42:32 15,1359         |  |  |  |  > Remove the renamde component
-22-04-13 19:42:32 15,1441 00,0082 |  |  |  |  < Remove the renamde component
-22-04-13 19:42:32 15,1522         |  |  |  |  > (Re-)Import the up-to-date Raw Common Component
-22-04-13 19:42:32 15,1651 00,0129 |  |  |  |  < (Re-)Import the up-to-date Raw Common Component
-22-04-13 19:42:32 15,1722         |  |  |  |  > Export the Used Common Component
-22-04-13 19:42:32 15,1883 00,0161 |  |  |  |  < Export the Used Common Component
-22-04-13 19:42:32 15,1966         |  |  |  |  > Remove the activated hidden Workbook and re-activate the processed Workbook
-22-04-13 19:42:32 15,3043 00,1077 |  |  |  |  < Remove the activated hidden Workbook and re-activate the processed Workbook
-22-04-13 19:42:32 15,3119 02,0049 |  |  |  << mRenew.ByImport
-22-04-13 19:42:33 16,3594         |  |  |  >> mUpdate.UpdateConfirmed
-22-04-13 19:42:34 16,3715 00,0121 |  |  |  << mUpdate.UpdateConfirmed
-22-04-13 19:42:34 16,3800         |  |  |  >> mRenew.ByImport
-22-04-13 19:42:34 16,3855         |  |  |  |  > Create and activate a hidden Workbook
-22-04-13 19:42:36 17,9010 01,5154 |  |  |  |  < Create and activate a hidden Workbook
-22-04-13 19:42:36 17,9094         |  |  |  |  > Rename the to-be-removed component
-22-04-13 19:42:36 17,9201 00,0106 |  |  |  |  < Rename the to-be-removed component
-22-04-13 19:42:36 17,9272         |  |  |  |  >> mRenew.OutCommentCodeInRenamedComponent
-22-04-13 19:42:36 18,2720 00,3448 |  |  |  |  << mRenew.OutCommentCodeInRenamedComponent
-22-04-13 19:42:36 18,3143         |  |  |  |  > Remove the renamde component
-22-04-13 19:42:36 18,3243 00,0101 |  |  |  |  < Remove the renamde component
-22-04-13 19:42:36 18,3317         |  |  |  |  > (Re-)Import the up-to-date Raw Common Component
-22-04-13 19:42:36 18,3444 00,0128 |  |  |  |  < (Re-)Import the up-to-date Raw Common Component
-22-04-13 19:42:36 18,3517         |  |  |  |  > Export the Used Common Component
-22-04-13 19:42:36 18,3672 00,0155 |  |  |  |  < Export the Used Common Component
-22-04-13 19:42:36 18,3751         |  |  |  |  > Remove the activated hidden Workbook and re-activate the processed Workbook
-22-04-13 19:42:36 18,4868 00,1117 |  |  |  |  < Remove the activated hidden Workbook and re-activate the processed Workbook
-22-04-13 19:42:36 18,4949 02,1149 |  |  |  << mRenew.ByImport
-22-04-13 19:42:37 19,6470 19,5590 |  |  << mUpdate.Outdated
-22-04-13 19:42:37 19,6542 19,6542 |  << mCompMan.UpdateOutdatedCommonComponents
-22-04-13 19:42:37 19,6542 19,6542 << Update Outdated (by Addin) for Obstructions.xlsm: 
-22-04-13 19:42:37                 Impact on the overall performance (caused by the trace itself): 00,0070 seconds!
-22-04-13 19:42:37 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
-
-22-04-13 19:42:41 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
-22-04-13 19:42:41                 >> Export Changed (by Addin) for Obstructions.xlsm: 
-22-04-13 19:42:41 00,0000         |  >> mCompMan.ExportChangedComponents
-22-04-13 19:42:41 00,0539         |  |  >> mService.ExportChangedComponents
-22-04-13 19:42:41 00,0953         |  |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
-22-04-13 19:42:41 00,1185 00,0232 |  |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
-22-04-13 19:42:41 00,1234         |  |  |  >> mExport.ChangedComponents
-22-04-13 19:42:42 01,0221         |  |  |  |  >> mService.RemoveTempRenamed
-22-04-13 19:42:42 01,0288 00,0067 |  |  |  |  << mService.RemoveTempRenamed
-22-04-13 19:42:42 01,0350 00,9116 |  |  |  << mExport.ChangedComponents
-22-04-13 19:42:42 01,0422 00,9883 |  |  << mService.ExportChangedComponents
-22-04-13 19:42:42 01,0481 01,0481 |  << mCompMan.ExportChangedComponents
-22-04-13 19:42:42 01,0481 01,0481 << Export Changed (by Addin) for Obstructions.xlsm: 
-22-04-13 19:42:42                 Impact on the overall performance (caused by the trace itself): 00,0059 seconds!
-22-04-13 19:42:42 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-04-28 16:36:24 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-04-28 16:36:24                 >> Export Changed (by Addin) for Obstructions.xlsm: 
+22-04-28 16:36:24 00,0000         |  >> mCompMan.ExportChangedComponents
+22-04-28 16:36:24 00,0750         |  |  >> mService.ExportChangedComponents
+22-04-28 16:36:24 00,1078         |  |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-04-28 16:36:24 00,1289 00,0211 |  |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-04-28 16:36:24 00,1337         |  |  |  >> mExport.ChangedComponents
+22-04-28 16:36:25 01,3719         |  |  |  |  >> mService.RemoveTempRenamed
+22-04-28 16:36:25 01,3803 00,0084 |  |  |  |  << mService.RemoveTempRenamed
+22-04-28 16:36:25 01,3861 01,2524 |  |  |  << mExport.ChangedComponents
+22-04-28 16:36:25 01,3918 01,3168 |  |  << mService.ExportChangedComponents
+22-04-28 16:36:25 01,3994 01,3994 |  << mCompMan.ExportChangedComponents
+22-04-28 16:36:25 01,3994 01,3994 << Export Changed (by Addin) for Obstructions.xlsm: 
+22-04-28 16:36:25                 Impact on the overall performance (caused by the trace itself): 00,0075 seconds!
+22-04-28 16:36:25 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
