@@ -1,15 +1,13 @@
-22-04-28 16:36:24 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
-22-04-28 16:36:24                 >> Export Changed (by Addin) for Obstructions.xlsm: 
-22-04-28 16:36:24 00,0000         |  >> mCompMan.ExportChangedComponents
-22-04-28 16:36:24 00,0750         |  |  >> mService.ExportChangedComponents
-22-04-28 16:36:24 00,1078         |  |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
-22-04-28 16:36:24 00,1289 00,0211 |  |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
-22-04-28 16:36:24 00,1337         |  |  |  >> mExport.ChangedComponents
-22-04-28 16:36:25 01,3719         |  |  |  |  >> mService.RemoveTempRenamed
-22-04-28 16:36:25 01,3803 00,0084 |  |  |  |  << mService.RemoveTempRenamed
-22-04-28 16:36:25 01,3861 01,2524 |  |  |  << mExport.ChangedComponents
-22-04-28 16:36:25 01,3918 01,3168 |  |  << mService.ExportChangedComponents
-22-04-28 16:36:25 01,3994 01,3994 |  << mCompMan.ExportChangedComponents
-22-04-28 16:36:25 01,3994 01,3994 << Export Changed (by Addin) for Obstructions.xlsm: 
-22-04-28 16:36:25                 Impact on the overall performance (caused by the trace itself): 00,0075 seconds!
-22-04-28 16:36:25 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-05-18 10:36:53 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)
+22-05-18 10:36:53                 >> Update Outdated (by Addin) for Obstructions.xlsm: 
+22-05-18 10:36:53 00,0000         |  >> mCompMan.UpdateOutdatedCommonComponents
+22-05-18 10:36:53 00,0266         |  |  >> mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-05-18 10:36:53 00,0965 00,0699 |  |  << mCompMan.MaintainPropertiesOfHostedRawCommonComponents
+22-05-18 10:36:53 00,1097         |  |  >> mUpdate.Outdated
+22-05-18 10:36:53 00,1866         |  |  |  >> mService.SaveWbk
+22-05-18 10:36:54 00,9593 00,7727 |  |  |  << mService.SaveWbk
+22-05-18 10:36:54 01,3621 01,2524 |  |  << mUpdate.Outdated
+22-05-18 10:36:54 01,3715 01,3715 |  << mCompMan.UpdateOutdatedCommonComponents
+22-05-18 10:36:54 01,3715 01,3715 << Update Outdated (by Addin) for Obstructions.xlsm: 
+22-05-18 10:36:54                 Impact on the overall performance (caused by the trace itself): 00,0093 seconds!
+22-05-18 10:36:54 Execution trace by 'Common VBA Execution Trace Service' (https://github.com/warbe-maker/Common-VBA-Execution-Trace-Service)

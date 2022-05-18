@@ -75,9 +75,9 @@ Private Declare PtrSafe Function getTickCount Lib "kernel32" _
 Alias "QueryPerformanceCounter" (cyTickCount As Currency) As Long
 
 'Functions to get DPI
-Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hwnd As Long) As Long
+Private Declare PtrSafe Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
-Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hwnd As Long, ByVal hDC As Long) As Long
+Private Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
 Private Const LOGPIXELSX = 88               ' Pixels/inch in X
 Private Const POINTS_PER_INCH As Long = 72  ' A point is defined as 1/72 inches
 Private Declare PtrSafe Function GetForegroundWindow _
@@ -85,13 +85,13 @@ Private Declare PtrSafe Function GetForegroundWindow _
 
 Private Declare PtrSafe Function GetWindowLongPtr _
   Lib "User32.dll" Alias "GetWindowLongA" _
-    (ByVal hwnd As LongPtr, _
+    (ByVal hWnd As LongPtr, _
      ByVal nIndex As Long) _
   As LongPtr
 
 Private Declare PtrSafe Function SetWindowLongPtr _
   Lib "User32.dll" Alias "SetWindowLongA" _
-    (ByVal hwnd As LongPtr, _
+    (ByVal hWnd As LongPtr, _
      ByVal nIndex As LongPtr, _
      ByVal dwNewLong As LongPtr) _
   As LongPtr
@@ -645,27 +645,30 @@ Public Function ErrMsg(ByVal err_source As String, _
 ' Universal error message display service. See:
 ' https://warbe-maker.github.io/vba/common/2022/02/15/Personal-and-public-Common-Components.html
 '
+' Basic service:
 ' - Displays a debugging option button when the Conditional Compile Argument
 '   'Debugging = 1'
 ' - Displays an optional additional "About the error:" section when a string is
 '   concatenated with the error message by two vertical bars (||)
-' - Invokes mErH.ErrMsg when the Conditional Compile Argument ErHComp = !
-' - Invokes mMsg.ErrMsg when the Conditional Compile Argument MsgComp = ! (and
+' - Displays the error message by means of VBA.MsgBox when neither of the
+'   following is installed
+'
+' Extendend service when other Common Components are installed and indicated via
+' Conditional Compile Arguments:
+' - Invokes mErH.ErrMsg when the Conditional Compile Argument ErHComp = 1
+' - Invokes mMsg.ErrMsg when the Conditional Compile Argument MsgComp = 1 (and
 '   the mErH module is not installed / MsgComp not set)
-' - Displays the error message by means of VBA.MsgBox when neither of the two
-'   components is installed
 '
 ' Uses:
-' - AppErr For programmed application errors (Err.Raise AppErr(n), ....) to
-'          turn them into negative and in the error message back into a
-'          positive number.
+' - AppErr For programmed application errors (Err.Raise AppErr(n), ....) to turn
+'          them into negative and in the error message back into a positive
+'          number.
 ' - ErrSrc To provide an unambiguous procedure name by prefixing is with the
 '          module name.
 '
-' See:
-' https://github.com/warbe-maker/Common-VBA-Error-Services
+' See: https://github.com/warbe-maker/Common-VBA-Error-Services
 '
-' W. Rauschenberger Berlin, Feb 2022
+' W. Rauschenberger Berlin, May 2022
 ' ------------------------------------------------------------------------------' ------------------------------------------------------------------------------
 #If ErHComp = 1 Then
     '~~ When Common VBA Error Services (mErH) is availabel in the VB-Project
@@ -794,13 +797,13 @@ Public Sub MakeFormResizable()
     Const GWL_STYLE As Long = (-16)
     
     Dim lStyle As LongPtr
-    Dim hwnd As LongPtr
+    Dim hWnd As LongPtr
     Dim RetVal
 
-    hwnd = GetForegroundWindow
+    hWnd = GetForegroundWindow
     
-    lStyle = GetWindowLongPtr(hwnd, GWL_STYLE Or WS_THICKFRAME)
-    RetVal = SetWindowLongPtr(hwnd, GWL_STYLE, lStyle)
+    lStyle = GetWindowLongPtr(hWnd, GWL_STYLE Or WS_THICKFRAME)
+    RetVal = SetWindowLongPtr(hWnd, GWL_STYLE, lStyle)
 
 End Sub
 
@@ -1039,12 +1042,33 @@ eh: Select Case ErrMsg(ErrSrc(PROC))
     End Select
 End Function
 
-Public Sub TimedDoEvents(ByVal tde_source As String)
-    Debug.Print "> DoEvents in '" & tde_source & "'"
+Public Function TimedDoEvents(ByVal tde_source As String) As String
+' ---------------------------------------------------------------------------
+' For the execution of a DoEvents statement. Provides the information in
+' which procedure it had been executed and the msecs delay it has caused.
+'
+' Note: DoEvents every now and then is able to solve timing problems. When
+'       looking at the description of its effect this often appears
+'       miraculous. However, when it helps ... . But DoEvents allow keyboard
+'       interaction while a process executes. In case of a loop - and when
+'       the DoEvents lies within it, this may be a godsend. But it as well
+'       may cause unpredictable results. This little procedure at least
+'       documents in the Immediate window when (with milliseconds) and where
+'       it had been executed.
+' ---------------------------------------------------------------------------
+    Dim s As String
+    
     mBasic.TimerBegin
     DoEvents
-    Debug.Print "< DoEvents in '" & tde_source & "' (" & TimerEnd & " msec elapsed)"
-End Sub
+    s = Format(Now(), "hh:mm:ss") & ":" _
+      & Right(Format(Timer, "0.000"), 3) _
+      & " DoEvents paused the execution for " _
+      & Format(mBasic.TimerEnd, "00000") _
+      & " msecs in '" & tde_source & "'"
+    Debug.Print s
+    TimedDoEvents = s
+    
+End Function
 
 Public Sub TimerBegin()
     cyTimerTicksBegin = TimerSysCurrentTicks
